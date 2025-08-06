@@ -6,9 +6,28 @@
 
 ## 🔬 **Exploring Bell Inequalities in Financial Data**
 
-This repository provides a comprehensive framework for exploring **Bell inequalities** in financial market data, comparing traditional **CHSH** approaches with **conditional S1 Bell tests**. The code implements multiple methodologies and allows extensive parameter experimentation to investigate regime-dependent correlations in financial markets.
+This repository provides a comprehensive framework for exploring **Bell inequalities** in financial market data, comparing traditional **CHSH** approaches with **conditional S1 Bell tests**. The enhanced version includes **focus group functionality** for targeted analysis of specific asset combinations, allowing extensive parameter experimentation to investigate regime-dependent correlations in financial markets.
 
 **⚠️ Note**: This is exploratory research. The methodology is designed for experimentation and parameter tuning rather than definitive conclusions.
+
+## 🎯 **NEW: Focus Group Analysis**
+
+The enhanced framework allows you to **focus analysis on specific asset groups** while maintaining comprehensive coverage:
+
+- **🔍 Priority Processing**: Focus assets tested first in all analyses
+- **📊 Enhanced Reporting**: Focus assets highlighted with 🎯 markers throughout  
+- **🎨 Visual Highlighting**: Red colors, thicker lines, special styling for focus assets
+- **📈 Separate Statistics**: Focus group stats reported separately from overall results
+- **⚛️ Bell Test Priority**: Focus pairs prioritized in both CHSH and S1 conditional Bell tests
+
+### **Predefined Focus Groups**
+```python
+tech_pairs   = ['AAPL', 'MSFT', 'GOOG', 'NVDA']     # Technology leaders
+high_vol     = ['TSLA', 'NVDA', 'NFLX']             # High volatility stocks  
+cross_sector = ['AAPL', 'CORN', 'DBA']              # Cross-sector mix
+commodities  = ['CORN', 'DBA', 'GLD', 'SLV']        # Commodities ETFs
+financials   = ['JPM', 'BAC', 'GS', 'WFC']          # Financial sector
+```
 
 ## 📚 **Research Context**
 
@@ -35,21 +54,83 @@ pip install pandas numpy matplotlib seaborn scipy
 
 ### **Basic Usage**
 ```python
-from thorough_aggregation_analyzer import ThoroughAggregationAnalyzer
+from enhanced_bell_analyzer import ComprehensiveBellAnalyzer
 
-# Initialize with default parameters
-analyzer = ThoroughAggregationAnalyzer()
+# Initialize with default tech focus group
+analyzer = ComprehensiveBellAnalyzer()
 
-# Run analysis with customizable parameters
-results = analyzer.load_and_analyze_thorough(
+# Or initialize with custom focus group
+analyzer = ComprehensiveBellAnalyzer(focus_assets=['AAPL', 'TSLA', 'NVDA'])
+
+# Run comprehensive analysis
+results = analyzer.load_and_analyze_comprehensive(
     file_path='your_data.csv.gz',
-    frequency='15min'  # Adjustable: '5min', '15min', '30min', '1hour'
+    frequency='15min'  # Adjustable: '5min', '15min', '30min'
 )
+```
+
+### **🎯 Focus Group Usage**
+
+```python
+# Method 1: Change default focus group at top of file
+DEFAULT_FOCUS_SET = tech_pairs  # or high_vol, cross_sector, etc.
+
+# Method 2: Use convenience functions
+analyzer, results = run_comprehensive_analysis(focus_assets='tech_pairs')
+analyzer, results = run_comprehensive_analysis(focus_assets=['AAPL', 'TSLA'])
+
+# Method 3: Interactive selection
+focus_assets = interactive_focus_selection()
+analyzer, results = run_comprehensive_analysis(focus_assets=focus_assets)
+
+# Method 4: Compare different focus groups
+(analyzer1, results1), (analyzer2, results2) = compare_focus_groups(
+    focus_group1=['AAPL', 'MSFT'], 
+    focus_group2=['TSLA', 'NVDA']
+)
+```
+
+### **Quick Start Examples**
+```python
+# Example 1: Tech focus analysis
+analyzer, results = example_tech_focus()
+
+# Example 2: High volatility analysis  
+analyzer, results = example_high_vol_focus()
+
+# Example 3: Custom focus analysis
+analyzer, results = example_custom_focus()
+
+# Example 4: Run with specific focus group
+analyzer, results = run_with_focus_group(['AAPL', 'TSLA', 'NVDA'])
 ```
 
 ## ⚙️ **Key Parameters to Experiment With**
 
-### **1. Time Window Parameters**
+### **1. Focus Group Selection**
+
+**Most Important Parameter**: Choose your focus group strategically
+
+```python
+# Modify at top of file
+DEFAULT_FOCUS_SET = tech_pairs      # Focus on tech stocks
+DEFAULT_FOCUS_SET = high_vol        # Focus on volatile stocks
+DEFAULT_FOCUS_SET = ['AAPL', 'BTC', 'GOLD']  # Custom focus
+
+# Or pass to functions
+analyzer, results = run_comprehensive_analysis(
+    focus_assets=['AAPL', 'MSFT', 'GOOG'],  # Your target assets
+    frequency='15min'
+)
+```
+
+**Focus Group Strategy Tips:**
+- **High correlation pairs** (tech stocks): More likely to show violations
+- **Cross-sector pairs**: Test for unexpected correlations  
+- **Volatility pairs**: Similar volatility profiles may show regime-dependent behavior
+- **Crisis-sensitive pairs**: Assets that move together during market stress
+
+### **2. Time Window Parameters**
 
 ```python
 # Modify in _perform_conditional_bell_analysis()
@@ -63,9 +144,11 @@ conditional_results = analyzer._perform_conditional_bell_analysis(
 - **`window_size`**: Shorter windows (10-15) capture rapid changes, longer windows (30-50) provide stability
 - **`threshold_quantile`**: Higher values (0.8-0.9) focus on extreme events, lower values (0.6-0.7) capture more moderate regime changes
 
-### **2. Aggregation Methods**
+**Focus Group Impact**: Focus pairs tested first with detailed parameter exploration
 
-The framework tests 6 different price aggregation methods. Modify in `_create_bars_all_methods()`:
+### **3. Aggregation Methods**
+
+The framework tests 6 different price aggregation methods. Focus assets get priority testing:
 
 ```python
 methods = {
@@ -78,12 +161,12 @@ methods = {
 }
 ```
 
-**Experimentation suggestions:**
-- Compare violation rates across methods
-- Test which methods are most sensitive to regime changes
-- Analyze correlation between aggregation method and violation patterns
+**Focus Group Enhancement**: 
+- Focus assets processed first with detailed diagnostics
+- Focus pair correlations reported separately
+- Focus assets highlighted in all method comparisons
 
-### **3. Binary Observable Definitions**
+### **4. Binary Observable Definitions**
 
 The core of Bell tests lies in how you define binary measurements. Current implementation in `_perform_conditional_bell_analysis()`:
 
@@ -115,7 +198,7 @@ a = np.where((RA - RA.mean())/RA.std() > 0, 1, -1)  # Above/below mean
 b = np.where((RB - RB.mean())/RB.std() > 0, 1, -1)
 ```
 
-### **4. Regime Definition Variations**
+### **5. Regime Definition Variations**
 
 Experiment with different ways to define market regimes:
 
@@ -138,11 +221,45 @@ x0 = RA.abs() >= rolling_vol_A.iloc[-1]
 y0 = RB.abs() >= rolling_vol_B.iloc[-1]
 ```
 
-## 🧪 **Experimental Framework**
+## 🧪 **Enhanced Experimental Framework**
+
+### **🎯 Focus Group Experiments**
+
+**Primary Research Strategy**: Use focus groups to systematically test different hypotheses
+
+```python
+# Test 1: Do tech stocks show quantum-like correlations?
+analyzer, results = run_comprehensive_analysis(focus_assets='tech_pairs')
+
+# Test 2: Do high volatility stocks violate Bell inequalities?
+analyzer, results = run_comprehensive_analysis(focus_assets='high_vol')
+
+# Test 3: Do cross-sector pairs show unexpected correlations?
+analyzer, results = run_comprehensive_analysis(focus_assets='cross_sector')
+
+# Test 4: Custom hypothesis testing
+custom_hypothesis = ['AAPL', 'BITCOIN', 'GOLD']  # Your theory here
+analyzer, results = run_comprehensive_analysis(focus_assets=custom_hypothesis)
+```
+
+### **Focus Group Validation**
+
+```python
+# Validate your focus group selection
+analyzer = ComprehensiveBellAnalyzer(focus_assets=['AAPL', 'MSFT'])
+validation_results = analyzer.validate_focus_assets(min_data_quality=0.8)
+
+# Check focus asset availability and quality
+print("Focus Asset Validation:")
+for method_name, validation in validation_results.items():
+    print(f"  {method_name}: {validation['coverage']*100:.1f}% coverage")
+    for asset, quality in validation['focus_quality'].items():
+        print(f"    {asset}: {quality:.1%} data quality")
+```
 
 ### **Testing Different Market Conditions**
 
-The framework allows you to focus analysis on specific market conditions:
+Focus on specific periods where your focus assets might show interesting behavior:
 
 ```python
 # Filter data by date ranges to test specific periods
@@ -152,149 +269,291 @@ crisis_periods = {
     'recent_volatility': ('2022-01-01', '2023-12-31')
 }
 
-# Modify data loading to focus on specific periods
-def load_period_data(self, file_path, start_date, end_date):
-    # Implementation to filter by date range
-    pass
-```
-
-### **Asset Pair Experiments**
-
-Experiment with different asset combinations:
-
-```python
-# High correlation pairs (tech stocks)
-tech_pairs = ['AAPL', 'MSFT', 'GOOG', 'NVDA']
-
-# Cross-sector pairs (low correlation expected)
-cross_sector = ['AAPL', 'CORN', 'DBA']  
-
-# Volatility pairs (similar volatility profiles)
-high_vol = ['TSLA', 'NVDA', 'NFLX']
+# Test focus groups during different market regimes
+for period_name, (start, end) in crisis_periods.items():
+    print(f"\n🔍 Testing {period_name} period:")
+    # Filter your data and run analysis
+    analyzer, results = run_comprehensive_analysis(
+        focus_assets=['AAPL', 'TSLA'], 
+        # Add date filtering logic here
+    )
 ```
 
 ### **Sensitivity Analysis Framework**
 
-Built-in functions for parameter sensitivity testing:
+Enhanced for focus groups:
 
 ```python
-# Test multiple window sizes
-for window in [10, 15, 20, 25, 30]:
-    results = analyzer._perform_conditional_bell_analysis(window_size=window)
-    # Analyze violation rate vs window size
-
-# Test multiple threshold quantiles  
-for quantile in [0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9]:
-    results = analyzer._perform_conditional_bell_analysis(threshold_quantile=quantile)
-    # Analyze violation rate vs threshold
-```
-
-## 📊 **Output Analysis Tools**
-
-### **Violation Pattern Analysis**
-
-```python
-# Extract violation patterns for analysis
-def analyze_violation_patterns(results):
-    for method_name, method_results in results['conditional_bell_analysis'].items():
-        for pair_name, pair_result in method_results.items():
-            s1_series = pair_result['s1_series']
-            violations = s1_series[s1_series['S1_value'].abs() > 2.0]
+# Test multiple parameters with focus group emphasis
+def focus_sensitivity_analysis(focus_assets, param_ranges):
+    results = {}
+    
+    for window in param_ranges['window_sizes']:
+        for quantile in param_ranges['quantiles']:
+            print(f"🎯 Testing focus {focus_assets} with window={window}, quantile={quantile}")
+            analyzer = ComprehensiveBellAnalyzer(focus_assets=focus_assets)
             
-            # Analyze timing, frequency, magnitude of violations
-            print(f"{pair_name}: {len(violations)} violations")
-            print(f"Max violation: {s1_series['S1_value'].abs().max():.4f}")
-            print(f"Violation rate: {len(violations)/len(s1_series)*100:.2f}%")
-```
-
-### **Comparative Analysis**
-
-```python
-# Compare CHSH vs S1 results
-def compare_methods(results):
-    chsh_max = max([r['chsh_value'] for method in results['chsh_analysis'].values() 
-                    for measurement in method.values() 
-                    for r in measurement.values()])
+            # Run with specific parameters
+            test_results = analyzer._perform_conditional_bell_analysis(
+                window_size=window, 
+                threshold_quantile=quantile
+            )
+            
+            # Extract focus-specific results
+            focus_violations = sum(
+                r['total_violations'] for method_results in test_results.values() 
+                for r in method_results.values() 
+                if r.get('is_focus_pair', False)
+            )
+            
+            results[(window, quantile)] = focus_violations
     
-    s1_violations = sum([r['total_violations'] for method in results['conditional_bell_analysis'].values()
-                        for r in method.values()])
+    return results
+
+# Usage
+param_ranges = {
+    'window_sizes': [10, 15, 20, 25, 30],
+    'quantiles': [0.6, 0.7, 0.75, 0.8, 0.9]
+}
+
+sensitivity_results = focus_sensitivity_analysis(['AAPL', 'MSFT'], param_ranges)
+```
+
+## 📊 **Enhanced Output Analysis Tools**
+
+### **Focus Group Violation Analysis**
+
+```python
+# Analyze violations with focus group emphasis
+def analyze_focus_violations(results, focus_assets):
+    print(f"🎯 FOCUS GROUP VIOLATION ANALYSIS")
+    print(f"Focus Assets: {focus_assets}")
     
-    print(f"CHSH max value: {chsh_max:.4f}")
-    print(f"S1 total violations: {s1_violations}")
+    focus_violations = 0
+    total_violations = 0
+    
+    for method_name, method_results in results['conditional_bell_analysis'].items():
+        method_focus_violations = 0
+        method_total_violations = 0
+        
+        for pair_name, pair_result in method_results.items():
+            violations = pair_result['total_violations']
+            method_total_violations += violations
+            
+            if pair_result.get('is_focus_pair', False):
+                method_focus_violations += violations
+                print(f"  🎯 {pair_name}: {violations} violations")
+        
+        focus_violations += method_focus_violations
+        total_violations += method_total_violations
+        
+        print(f"\n📊 {method_name} Summary:")
+        print(f"  Focus violations: {method_focus_violations}")
+        print(f"  Total violations: {method_total_violations}")
+        print(f"  Focus contribution: {method_focus_violations/method_total_violations*100:.1f}%" if method_total_violations > 0 else "  No violations")
+    
+    print(f"\n🎯 OVERALL FOCUS SUMMARY:")
+    print(f"  Focus group violations: {focus_violations}")
+    print(f"  Total violations: {total_violations}")
+    print(f"  Focus success rate: {focus_violations/total_violations*100:.1f}%" if total_violations > 0 else "  No violations found")
+
+# Usage
+analyze_focus_violations(results, analyzer.focus_assets)
 ```
 
-## 🔍 **Research Questions to Explore**
-
-### **Methodological Questions**
-1. **Optimal window size**: How does violation detection change with different rolling window sizes?
-2. **Threshold sensitivity**: Which quantile thresholds provide the most stable results?
-3. **Aggregation method impact**: Do different price aggregation methods reveal different correlation structures?
-4. **Observable definitions**: How do different binary observable choices affect violation patterns?
-
-### **Market Structure Questions**
-1. **Asset pair selection**: Which types of asset pairs show the most violations?
-2. **Temporal patterns**: Do violations cluster around specific market events?
-3. **Regime dependency**: How do violations relate to traditional volatility measures?
-4. **Cross-market analysis**: Do violations appear across different market sectors?
-
-### **Validation Questions**
-1. **Statistical significance**: Are violations statistically significant or due to random chance?
-2. **Robustness**: Do results hold across different time periods and market conditions?
-3. **Comparison with traditional measures**: How do Bell violations relate to correlation, VIX, etc.?
-
-## 📝 **Customization Guide**
-
-### **Adding New Aggregation Methods**
+### **Focus Group Comparison Analysis**
 
 ```python
-# In _create_bars_single_method(), add new methods:
-elif method == 'YourMethod':
-    # Your custom aggregation logic
-    custom_price = your_aggregation_function(ticker_data)
-    bars = pd.DataFrame({
-        'Close': custom_price,
-        'Volume': ticker_data['size'].resample(pandas_freq).sum()
-    })
-    bars['Returns'] = bars['Close'].pct_change()
+# Compare multiple focus groups
+def compare_focus_performance(focus_groups, file_path):
+    comparison_results = {}
+    
+    for group_name, focus_assets in focus_groups.items():
+        print(f"\n🔍 Testing {group_name}: {focus_assets}")
+        analyzer, results = run_comprehensive_analysis(
+            focus_assets=focus_assets,
+            file_path=file_path
+        )
+        
+        # Extract key metrics
+        total_violations = sum(
+            r['total_violations'] 
+            for method_results in results['conditional_bell_analysis'].values()
+            for r in method_results.values()
+        )
+        
+        focus_violations = sum(
+            r['total_violations'] 
+            for method_results in results['conditional_bell_analysis'].values()
+            for r in method_results.values()
+            if r.get('is_focus_pair', False)
+        )
+        
+        comparison_results[group_name] = {
+            'focus_assets': focus_assets,
+            'total_violations': total_violations,
+            'focus_violations': focus_violations,
+            'focus_success_rate': focus_violations/total_violations*100 if total_violations > 0 else 0
+        }
+    
+    # Display comparison
+    print(f"\n🏆 FOCUS GROUP COMPARISON:")
+    for group_name, metrics in comparison_results.items():
+        print(f"  {group_name}:")
+        print(f"    Assets: {metrics['focus_assets']}")
+        print(f"    Violations: {metrics['focus_violations']}/{metrics['total_violations']}")
+        print(f"    Success Rate: {metrics['focus_success_rate']:.1f}%")
+    
+    return comparison_results
+
+# Usage
+test_groups = {
+    'tech_leaders': ['AAPL', 'MSFT', 'GOOG'],
+    'high_volatility': ['TSLA', 'NVDA', 'NFLX'],
+    'cross_sector': ['AAPL', 'CORN', 'DBA'],
+    'custom_theory': ['AAPL', 'BITCOIN', 'GOLD']  # Your hypothesis
+}
+
+comparison = compare_focus_performance(test_groups, 'your_data.csv.gz')
 ```
 
-### **Modifying Bell Test Logic**
+## 🔍 **Enhanced Research Questions**
+
+### **🎯 Focus Group Methodology Questions**
+1. **Optimal focus group size**: How many assets should be in a focus group for reliable results?
+2. **Focus group composition**: Do similar assets (tech stocks) or diverse assets (cross-sector) show more violations?
+3. **Focus vs. random sampling**: Do focus groups find more violations than random asset pairs?
+4. **Focus group stability**: Do the same focus groups show violations across different time periods?
+
+### **Asset-Specific Questions**  
+1. **Tech stock quantum behavior**: Do technology stocks show more quantum-like correlations?
+2. **Volatility-violation relationship**: Do high-volatility assets violate Bell inequalities more often?
+3. **Cross-sector surprises**: Do unexpected cross-sector correlations violate classical bounds?
+4. **Crisis behavior**: How do focus group violations change during market stress?
+
+### **Enhanced Methodological Questions**
+1. **Focus group parameter optimization**: What parameters work best for different asset types?
+2. **Focus group validation**: How do you validate that a focus group is appropriate?
+3. **Multi-focus analysis**: Can you analyze multiple focus groups simultaneously?
+4. **Focus group evolution**: How should focus groups change over time?
+
+## 📝 **Enhanced Customization Guide**
+
+### **Adding Custom Focus Groups**
 
 ```python
-# In _perform_conditional_bell_analysis(), experiment with:
+# Define custom focus groups at the top of the file
+my_crypto_focus = ['BTC', 'ETH', 'SOL']  # If you have crypto data
+my_energy_focus = ['XOM', 'CVX', 'COP'] # Energy sector
+my_hypothesis = ['AAPL', 'TSLA', 'GOLD', 'VIX']  # Your market theory
 
-# Different S-value calculations
-S1 = ab_00 + ab_01 + ab_10 - ab_11  # Current
-S2 = ab_00 + ab_01 - ab_10 + ab_11  # Alternative
-S3 = ab_00 - ab_01 + ab_10 + ab_11  # Alternative  
-S4 = -ab_00 + ab_01 + ab_10 + ab_11 # Alternative
+# Add to predefined options
+predefined_groups = {
+    'my_crypto': my_crypto_focus,
+    'my_energy': my_energy_focus,
+    'my_hypothesis': my_hypothesis
+}
 
-# Different violation criteria
-violation = abs(S1) > 2.0           # Classical bound
-violation = abs(S1) > 2.828         # Quantum bound  
-violation = abs(S1) > custom_bound  # Your threshold
+# Use in analysis
+analyzer, results = run_comprehensive_analysis(focus_assets='my_hypothesis')
 ```
 
-### **Custom Visualization**
+### **Custom Focus Group Validation**
 
 ```python
-# Add custom plotting functions
-def plot_custom_analysis(self, results):
-    # Your custom visualization logic
-    pass
-
-# Call in _create_conditional_bell_visualizations()
-self.plot_custom_analysis(results)
+# Add custom validation logic
+def validate_custom_focus(focus_assets, tick_data):
+    """Validate that focus assets are suitable for analysis"""
+    
+    validation = {}
+    
+    for asset in focus_assets:
+        asset_data = tick_data[tick_data['ticker'] == asset]
+        
+        validation[asset] = {
+            'available': len(asset_data) > 0,
+            'tick_count': len(asset_data),
+            'data_span_hours': (asset_data['datetime'].max() - asset_data['datetime'].min()).total_seconds() / 3600,
+            'price_volatility': asset_data['price'].std() / asset_data['price'].mean()
+        }
+    
+    # Check focus group quality
+    available_assets = [a for a in focus_assets if validation[a]['available']]
+    avg_volatility = np.mean([validation[a]['price_volatility'] for a in available_assets])
+    
+    print(f"🎯 FOCUS GROUP VALIDATION:")
+    print(f"  Assets requested: {focus_assets}")
+    print(f"  Assets available: {available_assets}")
+    print(f"  Coverage: {len(available_assets)}/{len(focus_assets)} ({len(available_assets)/len(focus_assets)*100:.1f}%)")
+    print(f"  Average volatility: {avg_volatility:.4f}")
+    
+    return validation
 ```
 
-## 🎯 **Next Steps for Exploration**
+### **Enhanced Visualization for Focus Groups**
 
-1. **Parameter sweeps**: Systematically test different parameter combinations
-2. **Statistical validation**: Implement bootstrap tests for violation significance  
-3. **Comparative studies**: Test against traditional correlation measures
-4. **Real-time implementation**: Adapt for live market data analysis
-5. **Multi-timeframe analysis**: Combine results across different frequencies
-6. **Machine learning integration**: Use violations as features for market prediction
+```python
+# Add focus-specific plotting functions
+def plot_focus_group_performance(self, results):
+    """Plot focus group specific results"""
+    
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 10))
+    
+    # Plot 1: Focus vs non-focus violation rates
+    self._plot_focus_vs_others_violations(ax1, results)
+    
+    # Plot 2: Focus group correlation heatmap
+    self._plot_focus_correlation_heatmap(ax2, results)
+    
+    # Plot 3: Focus group S1 time series (all pairs)
+    self._plot_focus_s1_timeseries(ax3, results)
+    
+    # Plot 4: Focus group parameter sensitivity
+    self._plot_focus_parameter_sensitivity(ax4, results)
+    
+    plt.suptitle(f'🎯 Focus Group Analysis: {", ".join(self.focus_assets)}', 
+                fontsize=14, fontweight='bold')
+    plt.tight_layout()
+    plt.show()
+
+# Call in visualization section
+self.plot_focus_group_performance(results)
+```
+
+## 🎯 **Focus Group Best Practices**
+
+### **1. Strategic Focus Group Selection**
+- **Start specific**: Begin with 2-3 highly correlated assets
+- **Test hypotheses**: Choose assets based on market theories
+- **Consider liquidity**: Ensure focus assets have sufficient tick data
+- **Mixed approaches**: Test both similar and diverse asset combinations
+
+### **2. Parameter Optimization for Focus Groups**
+- **Shorter windows**: Focus groups may need more sensitive detection
+- **Higher thresholds**: Well-known correlations may need extreme regime detection
+- **Method comparison**: Different aggregation methods may suit different focus groups
+
+### **3. Validation and Robustness**
+- **Multiple time periods**: Test focus groups across different market conditions
+- **Parameter sensitivity**: Ensure results aren't due to specific parameter choices  
+- **Comparison testing**: Always compare focus group results with random pairs
+- **Statistical significance**: Test whether focus group violations are statistically meaningful
+
+### **4. Research Documentation**
+- **Document hypotheses**: Clearly state why you chose specific focus groups
+- **Record parameters**: Track which parameters work best for each focus group
+- **Compare results**: Maintain comparison tables across different focus groups
+- **Validate findings**: Cross-validate results with traditional correlation measures
+
+## 🎯 **Next Steps for Focus Group Exploration**
+
+1. **📊 Systematic focus group testing**: Test all predefined focus groups with your data
+2. **⚙️ Parameter optimization**: Find optimal parameters for each focus group type  
+3. **📈 Time series analysis**: Track focus group violation patterns over time
+4. **🔬 Statistical validation**: Implement bootstrap tests for focus group significance
+5. **🎯 Custom hypothesis testing**: Design focus groups based on your market theories
+6. **🤖 Automated focus selection**: Develop algorithms to automatically identify optimal focus groups
+7. **📱 Real-time monitoring**: Adapt focus group analysis for live market surveillance
 
 ## 📖 **References**
 
