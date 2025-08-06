@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-COMPLETE ENHANCED BELL INEQUALITY ANALYSIS WITH FOCUS GROUPS
-============================================================
+COMPLETE ENHANCED BELL INEQUALITY ANALYSIS WITH FOCUS GROUPS - FIXED VERSION
+============================================================================
 Full analysis framework with conditional Bell tests, focused on specific asset groups
 Includes all methods: CHSH, S1 conditional Bell test, comprehensive visualizations
+FIXED: Column name detection and data validation issues
 """
 
 import pandas as pd
@@ -39,6 +40,7 @@ class ComprehensiveBellAnalyzer:
         self.detailed_results = {}
         self.conditional_bell_results = {}
         self.focus_assets = focus_assets or DEFAULT_FOCUS_SET
+        self.column_mapping = None  # Store the detected column mapping
         
         print(f"🔬 Initialized comprehensive analyzer focusing on: {self.focus_assets}")
         
@@ -52,8 +54,12 @@ class ComprehensiveBellAnalyzer:
         print(f"Focus Assets: {self.focus_assets}")
         print("Full analysis pipeline with asset group focus")
         
-        # Step 1: Load and analyze tick data (full dataset but highlight focus assets)
-        self.tick_data = self._load_tick_data_detailed(file_path)
+        # Step 1: Load and analyze tick data (FIXED VERSION with column detection)
+        self.tick_data = self._load_tick_data_detailed_fixed(file_path)
+        
+        if self.tick_data is None:
+            print("❌ Failed to load data - stopping analysis")
+            return None
         
         # Step 2: Create bars with multiple methods (full dataset)
         self.method_data = self._create_bars_all_methods(frequency)
@@ -95,13 +101,107 @@ class ComprehensiveBellAnalyzer:
             'robustness_tests': robustness_tests
         }
     
-    def _load_tick_data_detailed(self, file_path):
-        """Load tick data with detailed diagnostics"""
+    def _inspect_data_structure(self, file_path):
+        """FIXED: Inspect the actual data structure to identify correct column names"""
         
-        print("\n📊 DETAILED TICK DATA LOADING")
+        print("🔍 INSPECTING DATA STRUCTURE FOR CORRECT COLUMN MAPPING")
+        print("=" * 60)
+        
+        # Load first few rows to inspect structure
+        try:
+            if file_path.endswith('.gz'):
+                with gzip.open(file_path, 'rt') as f:
+                    df_sample = pd.read_csv(f, nrows=10)
+            else:
+                df_sample = pd.read_csv(file_path, nrows=10)
+        except Exception as e:
+            print(f"❌ Error reading file: {e}")
+            return None, None
+        
+        print(f"📋 ACTUAL COLUMNS FOUND:")
+        for i, col in enumerate(df_sample.columns):
+            print(f"   {i}: '{col}'")
+        
+        print(f"\n📊 SAMPLE DATA (first 3 rows):")
+        print(df_sample.head(3).to_string())
+        
+        print(f"\n🔍 COLUMN DATA TYPES:")
+        for col in df_sample.columns:
+            sample_values = df_sample[col].dropna().head(3).values
+            print(f"   {col}: {df_sample[col].dtype} | Sample: {sample_values}")
+        
+        print(f"\n💡 COLUMN MAPPING DETECTION:")
+        
+        # Try to identify columns intelligently
+        possible_mappings = {
+            'ticker': None,
+            'price': None,
+            'size': None,
+            'date': None,
+            'time': None
+        }
+        
+        for col in df_sample.columns:
+            col_lower = col.lower()
+            # Check for ticker/symbol
+            if any(word in col_lower for word in ['sym', 'ticker', 'symbol', 'stock', 'root']):
+                possible_mappings['ticker'] = col
+                print(f"   🎯 Detected ticker column: '{col}'")
+            
+            # Check for price
+            if any(word in col_lower for word in ['price', 'px', 'last', 'close']):
+                possible_mappings['price'] = col
+                print(f"   💰 Detected price column: '{col}'")
+            
+            # Check for size/volume
+            if any(word in col_lower for word in ['size', 'volume', 'qty', 'quantity']):
+                possible_mappings['size'] = col
+                print(f"   📊 Detected size column: '{col}'")
+            
+            # Check for date
+            if any(word in col_lower for word in ['date', 'day', 'dt']):
+                possible_mappings['date'] = col
+                print(f"   📅 Detected date column: '{col}'")
+            
+            # Check for time
+            if any(word in col_lower for word in ['time', 'tm', 'timestamp']) and 'date' not in col_lower:
+                possible_mappings['time'] = col
+                print(f"   ⏰ Detected time column: '{col}'")
+        
+        # Validation
+        missing_mappings = [k for k, v in possible_mappings.items() if v is None and k in ['ticker', 'price', 'size']]
+        if missing_mappings:
+            print(f"⚠️  Could not auto-detect columns: {missing_mappings}")
+            print(f"Available columns: {list(df_sample.columns)}")
+        else:
+            print(f"✅ Successfully detected all required column mappings")
+        
+        return df_sample, possible_mappings
+    
+    def _load_tick_data_detailed_fixed(self, file_path):
+        """FIXED: Load tick data with intelligent column detection and validation"""
+        
+        print("\n📊 DETAILED TICK DATA LOADING (FIXED VERSION)")
         print("=" * 50)
         
-        # Load data
+        # Step 1: Inspect data structure
+        sample_df, column_mapping = self._inspect_data_structure(file_path)
+        if sample_df is None or column_mapping is None:
+            return None
+        
+        # Store the mapping for later use
+        self.column_mapping = column_mapping
+        
+        # Check if we have the minimum required columns
+        required_cols = ['ticker', 'price', 'size']
+        missing_required = [col for col in required_cols if column_mapping.get(col) is None]
+        if missing_required:
+            print(f"❌ Missing required columns: {missing_required}")
+            print(f"Cannot proceed without: ticker, price, size columns")
+            return None
+        
+        # Step 2: Load full dataset
+        print(f"\n📂 LOADING FULL DATASET...")
         if file_path.endswith('.gz'):
             with gzip.open(file_path, 'rt') as f:
                 df = pd.read_csv(f, sep=',')
@@ -111,84 +211,193 @@ class ComprehensiveBellAnalyzer:
         print(f"✅ Raw data loaded: {len(df):,} rows")
         print(f"📋 Columns: {list(df.columns)}")
         
-        # Parse datetime with diagnostics
-        print("\n⏰ DATETIME PARSING DIAGNOSTICS:")
-        datetime_strings = df['DATE'].astype(str) + ' ' + df['TIME_M'].astype(str)
+        # Step 3: Apply column mapping with validation
+        print(f"\n🔄 APPLYING COLUMN MAPPING...")
         
-        print(f"   Sample datetime strings:")
-        for i, dt_str in enumerate(datetime_strings.head(3)):
-            print(f"      {i+1}: {dt_str}")
+        # Create renamed dataframe
+        df_renamed = df.copy()
         
-        df['datetime'] = pd.to_datetime(datetime_strings, format='%Y-%m-%d %H:%M:%S.%f')
+        # Map the essential columns
+        essential_mappings = {
+            'ticker': column_mapping['ticker'],
+            'price': column_mapping['price'], 
+            'size': column_mapping['size']
+        }
         
-        # Column renaming
-        df = df.rename(columns={
-            'SYM_ROOT': 'ticker',
-            'PRICE': 'price',
-            'SIZE': 'size'
-        })
+        for target_col, source_col in essential_mappings.items():
+            if source_col and source_col in df.columns:
+                df_renamed[target_col] = df[source_col]
+                print(f"✅ Mapped '{source_col}' → '{target_col}'")
+                
+                # Validate the data looks reasonable
+                if target_col == 'ticker':
+                    unique_tickers = df_renamed[target_col].nunique()
+                    print(f"   Found {unique_tickers} unique tickers")
+                elif target_col == 'price':
+                    price_stats = df_renamed[target_col].describe()
+                    print(f"   Price range: ${price_stats['min']:.2f} - ${price_stats['max']:.2f}")
+                elif target_col == 'size':
+                    size_stats = df_renamed[target_col].describe()
+                    print(f"   Size range: {size_stats['min']:,.0f} - {size_stats['max']:,.0f}")
+            else:
+                print(f"❌ Failed to map {target_col} (source: {source_col})")
+                return None
         
-        df = df.sort_values('datetime')
+        # Step 4: Handle datetime creation with multiple strategies
+        print(f"\n⏰ CREATING DATETIME INDEX...")
+        datetime_created = False
         
-        # Detailed data diagnostics
-        print(f"\n📈 TICK DATA DIAGNOSTICS:")
-        print(f"   Total ticks: {len(df):,}")
-        print(f"   Date range: {df['datetime'].min()} to {df['datetime'].max()}")
-        print(f"   Time span: {(df['datetime'].max() - df['datetime'].min()).total_seconds() / 3600:.1f} hours")
+        # Strategy 1: Separate date and time columns
+        if column_mapping.get('date') and column_mapping.get('time'):
+            date_col = column_mapping['date']
+            time_col = column_mapping['time']
+            
+            if date_col in df.columns and time_col in df.columns:
+                print(f"🕐 Attempting datetime from '{date_col}' + '{time_col}'")
+                try:
+                    # Show sample of what we're trying to parse
+                    sample_datetime = str(df[date_col].iloc[0]) + ' ' + str(df[time_col].iloc[0])
+                    print(f"   Sample datetime string: '{sample_datetime}'")
+                    
+                    datetime_strings = df[date_col].astype(str) + ' ' + df[time_col].astype(str)
+                    df_renamed['datetime'] = pd.to_datetime(datetime_strings, format='%Y-%m-%d %H:%M:%S.%f', errors='coerce')
+                    
+                    # Check if parsing worked
+                    valid_dates = df_renamed['datetime'].notna().sum()
+                    if valid_dates > len(df) * 0.5:  # At least 50% valid dates
+                        datetime_created = True
+                        print(f"✅ DateTime created successfully ({valid_dates:,}/{len(df):,} valid)")
+                    else:
+                        print(f"⚠️  DateTime parsing had issues ({valid_dates:,}/{len(df):,} valid)")
+                        
+                        # Try alternative format
+                        df_renamed['datetime'] = pd.to_datetime(datetime_strings, errors='coerce')
+                        valid_dates = df_renamed['datetime'].notna().sum()
+                        if valid_dates > len(df) * 0.5:
+                            datetime_created = True
+                            print(f"✅ DateTime created with auto-detection ({valid_dates:,} valid)")
+                        
+                except Exception as e:
+                    print(f"⚠️  Error creating datetime: {e}")
+        
+        # Strategy 2: Look for existing datetime/timestamp column
+        if not datetime_created:
+            for col in df.columns:
+                if any(word in col.lower() for word in ['timestamp', 'datetime', 'dt']):
+                    try:
+                        df_renamed['datetime'] = pd.to_datetime(df[col], errors='coerce')
+                        valid_dates = df_renamed['datetime'].notna().sum()
+                        if valid_dates > len(df) * 0.5:
+                            datetime_created = True
+                            print(f"✅ Used existing '{col}' column as datetime ({valid_dates:,} valid)")
+                            break
+                    except:
+                        continue
+        
+        # Strategy 3: Fallback to index-based timestamps
+        if not datetime_created:
+            print("⚠️  Could not create meaningful datetime, using sequential timestamps")
+            start_time = pd.Timestamp('2024-01-01 09:30:00')
+            df_renamed['datetime'] = [start_time + pd.Timedelta(seconds=i*0.1) for i in range(len(df))]
+            datetime_created = True
+        
+        # Step 5: Data cleaning and validation
+        print(f"\n🧹 DATA CLEANING AND VALIDATION...")
+        
+        # Convert price and size to numeric
+        df_renamed['price'] = pd.to_numeric(df_renamed['price'], errors='coerce')
+        df_renamed['size'] = pd.to_numeric(df_renamed['size'], errors='coerce')
+        
+        # Remove invalid data
+        initial_rows = len(df_renamed)
+        df_renamed = df_renamed.dropna(subset=['ticker', 'price', 'size', 'datetime'])
+        final_rows = len(df_renamed)
+        
+        print(f"   Removed {initial_rows - final_rows:,} invalid rows")
+        print(f"   Final dataset: {final_rows:,} rows")
+        
+        if final_rows < 100:
+            print(f"❌ Insufficient data after cleaning ({final_rows} rows)")
+            return None
+        
+        # Sort by datetime
+        df_renamed = df_renamed.sort_values('datetime')
+        
+        # Step 6: Final validation and statistics
+        print(f"\n📈 FINAL DATA VALIDATION:")
+        print(f"   Date range: {df_renamed['datetime'].min()} to {df_renamed['datetime'].max()}")
+        print(f"   Time span: {(df_renamed['datetime'].max() - df_renamed['datetime'].min()).total_seconds() / 3600:.1f} hours")
         
         # Ticker analysis with focus asset highlighting
-        ticker_stats = df['ticker'].value_counts()
+        ticker_stats = df_renamed['ticker'].value_counts()
         print(f"\n🎯 TICKER ANALYSIS (FOCUS ASSETS HIGHLIGHTED):")
         print(f"   Unique tickers: {len(ticker_stats)}")
         print(f"   Focus assets: {self.focus_assets}")
         print(f"   Ticker distribution:")
         
-        for ticker, count in ticker_stats.items():
-            pct = count / len(df) * 100
-            focus_marker = "🎯" if ticker in self.focus_assets else "  "
-            print(f"      {focus_marker} {ticker}: {count:,} ticks ({pct:.1f}%)")
+        focus_found = []
+        focus_missing = []
         
-        # Price analysis by ticker (focus on target assets first)
-        print(f"\n💰 DETAILED PRICE ANALYSIS:")
-        
-        # Focus assets first
-        print("   🎯 FOCUS ASSETS:")
-        for ticker in self.focus_assets:
-            if ticker in df['ticker'].values:
-                ticker_data = df[df['ticker'] == ticker]
-                prices = ticker_data['price']
-                print(f"     {ticker}:")
-                print(f"        Price range: ${prices.min():.2f} - ${prices.max():.2f}")
-                print(f"        Mean price: ${prices.mean():.2f}")
-                print(f"        Price volatility: {prices.std():.2f}")
-                print(f"        Ticks: {len(ticker_data):,}")
+        for ticker, count in ticker_stats.head(15).items():
+            pct = count / len(df_renamed) * 100
+            ticker_data = df_renamed[df_renamed['ticker'] == ticker]
+            prices = ticker_data['price']
+            
+            if ticker in self.focus_assets:
+                focus_found.append(ticker)
+                focus_marker = "🎯"
+                print(f"      {focus_marker} {ticker}: {count:,} ticks ({pct:.1f}%) | Price: ${prices.min():.2f}-${prices.max():.2f}")
             else:
-                print(f"     {ticker}: ❌ NO DATA FOUND")
+                focus_marker = "  "
+                print(f"      {focus_marker} {ticker}: {count:,} ticks ({pct:.1f}%) | Price: ${prices.min():.2f}-${prices.max():.2f}")
         
-        # Other assets
-        other_assets = [t for t in sorted(df['ticker'].unique()) if t not in self.focus_assets]
-        if other_assets:
-            print("   📊 OTHER ASSETS:")
-            for ticker in other_assets:
-                ticker_data = df[df['ticker'] == ticker]
-                prices = ticker_data['price']
-                print(f"     {ticker}:")
-                print(f"        Price range: ${prices.min():.2f} - ${prices.max():.2f}")
-                print(f"        Mean price: ${prices.mean():.2f}")
-                print(f"        Ticks: {len(ticker_data):,}")
+        # Check for missing focus assets
+        for asset in self.focus_assets:
+            if asset not in ticker_stats.index:
+                focus_missing.append(asset)
+        
+        if focus_missing:
+            print(f"\n⚠️  FOCUS ASSETS NOT FOUND: {focus_missing}")
+            print(f"   Available tickers: {list(ticker_stats.head(20).index)}")
+            print(f"   Consider updating focus_assets to match available data")
+        
+        if focus_found:
+            print(f"\n✅ FOCUS ASSETS AVAILABLE: {focus_found}")
+        else:
+            print(f"\n❌ NO FOCUS ASSETS FOUND IN DATA!")
+            print(f"   You may want to update your focus_assets list")
+        
+        # Price validation
+        overall_price_stats = df_renamed['price'].describe()
+        print(f"\n💰 OVERALL PRICE VALIDATION:")
+        print(f"   Price range: ${overall_price_stats['min']:.2f} - ${overall_price_stats['max']:.2f}")
+        print(f"   Mean price: ${overall_price_stats['mean']:.2f}")
+        print(f"   Median price: ${overall_price_stats['50%']:.2f}")
+        
+        # Size validation  
+        overall_size_stats = df_renamed['size'].describe()
+        print(f"   Size range: {overall_size_stats['min']:,.0f} - {overall_size_stats['max']:,.0f}")
+        print(f"   Mean size: {overall_size_stats['mean']:,.0f}")
         
         # Time gaps analysis
         print(f"\n⏱️  TIME GAPS ANALYSIS:")
-        time_diffs = df['datetime'].diff().dt.total_seconds()
+        time_diffs = df_renamed['datetime'].diff().dt.total_seconds()
         print(f"   Median time between ticks: {time_diffs.median():.6f} seconds")
         print(f"   Mean time between ticks: {time_diffs.mean():.6f} seconds")
         print(f"   Max time gap: {time_diffs.max():.2f} seconds")
-        print(f"   Time gaps > 1 second: {(time_diffs > 1).sum():,} ({(time_diffs > 1).sum()/len(time_diffs)*100:.1f}%)")
+        large_gaps = (time_diffs > 1).sum()
+        print(f"   Time gaps > 1 second: {large_gaps:,} ({large_gaps/len(time_diffs)*100:.1f}%)")
         
-        return df
+        print(f"\n✅ DATA LOADING COMPLETE - READY FOR ANALYSIS")
+        
+        return df_renamed
     
     def _create_bars_all_methods(self, frequency):
         """Create bars with detailed method comparison"""
+        
+        if self.tick_data is None:
+            print("❌ No tick data available")
+            return {}
         
         print(f"\n📊 DETAILED BAR CREATION - {frequency.upper()}")
         print("=" * 50)
@@ -235,15 +444,16 @@ class ComprehensiveBellAnalyzer:
                         focus_marker = "🎯" if ticker in self.focus_assets else "  "
                         print(f"   {focus_marker} ✅ {ticker}:")
                         print(f"      {len(ticker_data):,} ticks → {len(bars)} bars")
-                        print(f"      Return stats: μ={returns.mean():.6f}, σ={returns.std():.6f}")
-                        print(f"      Return range: {returns.min():.6f} to {returns.max():.6f}")
-                        print(f"      Non-zero returns: {(returns != 0).sum()}/{len(returns)} ({(returns != 0).sum()/len(returns)*100:.1f}%)")
+                        if len(returns) > 0:
+                            print(f"      Return stats: μ={returns.mean():.6f}, σ={returns.std():.6f}")
+                            print(f"      Return range: {returns.min():.6f} to {returns.max():.6f}")
+                            print(f"      Non-zero returns: {(returns != 0).sum()}/{len(returns)} ({(returns != 0).sum()/len(returns)*100:.1f}%)")
                         
                         # Price comparison between first and last
                         first_price = bars['Close'].iloc[0]
                         last_price = bars['Close'].iloc[-1]
                         total_return = (last_price - first_price) / first_price
-                        print(f"      Total return: {total_return*100:.2f}%")
+                        print(f"      Price: ${first_price:.2f} → ${last_price:.2f} ({total_return*100:.2f}%)")
                     else:
                         focus_marker = "🎯" if ticker in self.focus_assets else "  "
                         print(f"   {focus_marker} ❌ {ticker}: Insufficient bars ({len(bars)})")
@@ -2070,7 +2280,7 @@ def example_high_vol_focus():
 # =================== MAIN EXECUTION ===================
 
 if __name__ == "__main__":
-    print("🚀 COMPREHENSIVE BELL INEQUALITY ANALYZER WITH FOCUS GROUPS")
+    print("🚀 COMPREHENSIVE BELL INEQUALITY ANALYZER WITH FOCUS GROUPS - FIXED VERSION")
     print("=" * 80)
     print(f"Current focus group: {DEFAULT_FOCUS_SET}")
     print(f"To change focus group, modify DEFAULT_FOCUS_SET at the top of the file")
@@ -2079,36 +2289,44 @@ if __name__ == "__main__":
     # Run the main analysis
     analyzer, results = run_comprehensive_analysis()
     
-    print(f"\n✅ COMPREHENSIVE ANALYSIS COMPLETE!")
-    
-    # Display final focus group summary
-    if hasattr(analyzer, 'conditional_bell_results') and analyzer.conditional_bell_results:
-        focus_violations = 0
-        total_violations = 0
+    if results is None:
+        print("\n❌ ANALYSIS FAILED!")
+        print("This is likely due to column name issues or data format problems.")
+        print("The fixed version includes automatic column detection to resolve this.")
+        print("\nTry running the data inspection first:")
+        print("   analyzer = ComprehensiveBellAnalyzer(['AAPL', 'MSFT'])")
+        print("   analyzer._inspect_data_structure('/path/to/your/file.csv.gz')")
+    else:
+        print(f"\n✅ COMPREHENSIVE ANALYSIS COMPLETE!")
         
-        for method_results in analyzer.conditional_bell_results.values():
-            for pair_result in method_results.values():
-                total_violations += pair_result['total_violations']
-                if pair_result.get('is_focus_pair', False):
-                    focus_violations += pair_result['total_violations']
+        # Display final focus group summary
+        if hasattr(analyzer, 'conditional_bell_results') and analyzer.conditional_bell_results:
+            focus_violations = 0
+            total_violations = 0
+            
+            for method_results in analyzer.conditional_bell_results.values():
+                for pair_result in method_results.values():
+                    total_violations += pair_result['total_violations']
+                    if pair_result.get('is_focus_pair', False):
+                        focus_violations += pair_result['total_violations']
+            
+            print(f"\n🎯 FINAL FOCUS GROUP SUMMARY:")
+            print(f"   Focus Assets: {analyzer.focus_assets}")
+            print(f"   Focus Bell Violations: {focus_violations}")
+            print(f"   Total Bell Violations: {total_violations}")
+            
+            if focus_violations > 0:
+                print(f"   🚨 SUCCESS: Your focus group shows quantum-like behavior!")
+                print(f"   Check the plots and detailed output above for violation details.")
+            else:
+                print(f"   ✅ Focus group shows classical behavior.")
+                print(f"   Consider testing with different parameters or time periods.")
         
-        print(f"\n🎯 FINAL FOCUS GROUP SUMMARY:")
-        print(f"   Focus Assets: {analyzer.focus_assets}")
-        print(f"   Focus Bell Violations: {focus_violations}")
-        print(f"   Total Bell Violations: {total_violations}")
-        
-        if focus_violations > 0:
-            print(f"   🚨 SUCCESS: Your focus group shows quantum-like behavior!")
-            print(f"   Check the plots and detailed output above for violation details.")
-        else:
-            print(f"   ✅ Focus group shows classical behavior.")
-            print(f"   Consider testing with different parameters or time periods.")
-    
-    print(f"\n💡 To run with different focus groups:")
-    print(f"   • Modify DEFAULT_FOCUS_SET at the top of the file")
-    print(f"   • Or call: run_comprehensive_analysis(focus_assets=['YOUR', 'ASSETS'])")
-    print(f"   • Or use: run_with_focus_group(['YOUR', 'ASSETS'])")
-    print(f"   • Or use: analyzer, results = interactive_focus_selection()")
+        print(f"\n💡 To run with different focus groups:")
+        print(f"   • Modify DEFAULT_FOCUS_SET at the top of the file")
+        print(f"   • Or call: run_comprehensive_analysis(focus_assets=['YOUR', 'ASSETS'])")
+        print(f"   • Or use: run_with_focus_group(['YOUR', 'ASSETS'])")
+        print(f"   • Or use: analyzer, results = interactive_focus_selection()")
 
 # =================== ADDITIONAL UTILITY FUNCTIONS ===================
 
@@ -2160,3 +2378,72 @@ def compare_focus_groups(focus_group1, focus_group2):
         print(f"   ⚖️  Both groups show similar behavior")
     
     return (analyzer1, results1), (analyzer2, results2)
+
+def inspect_data_only(file_path):
+    """Just inspect data structure without full analysis"""
+    
+    print("🔍 DATA INSPECTION ONLY")
+    print("=" * 40)
+    
+    analyzer = ComprehensiveBellAnalyzer(['AAPL', 'MSFT'])  # Dummy focus assets for inspection
+    sample_df, column_mapping = analyzer._inspect_data_structure(file_path)
+    
+    return sample_df, column_mapping
+
+def manual_column_fix(file_path, ticker_col, price_col, size_col, date_col=None, time_col=None, focus_assets=None):
+    """Manual override for column mapping"""
+    
+    print("🔧 MANUAL COLUMN OVERRIDE")
+    print("=" * 40)
+    
+    manual_mapping = {
+        'ticker': ticker_col,
+        'price': price_col,
+        'size': size_col,
+        'date': date_col,
+        'time': time_col
+    }
+    
+    print(f"Using manual mapping: {manual_mapping}")
+    
+    analyzer = ComprehensiveBellAnalyzer(focus_assets=focus_assets)
+    analyzer.column_mapping = manual_mapping
+    
+    # Try to load with manual mapping
+    try:
+        if file_path.endswith('.gz'):
+            with gzip.open(file_path, 'rt') as f:
+                df = pd.read_csv(f)
+        else:
+            df = pd.read_csv(file_path)
+        
+        # Apply manual mapping
+        df_renamed = df.copy()
+        df_renamed['ticker'] = df[ticker_col]
+        df_renamed['price'] = pd.to_numeric(df[price_col], errors='coerce')  
+        df_renamed['size'] = pd.to_numeric(df[size_col], errors='coerce')
+        
+        # Handle datetime
+        if date_col and time_col:
+            datetime_strings = df[date_col].astype(str) + ' ' + df[time_col].astype(str)
+            df_renamed['datetime'] = pd.to_datetime(datetime_strings, errors='coerce')
+        else:
+            # Use index-based datetime
+            start_time = pd.Timestamp('2024-01-01 09:30:00')
+            df_renamed['datetime'] = [start_time + pd.Timedelta(seconds=i*0.1) for i in range(len(df))]
+        
+        df_renamed = df_renamed.dropna(subset=['ticker', 'price', 'size', 'datetime'])
+        df_renamed = df_renamed.sort_values('datetime')
+        
+        analyzer.tick_data = df_renamed
+        
+        print(f"✅ Manual mapping successful!")
+        print(f"   Final rows: {len(df_renamed):,}")
+        print(f"   Tickers: {df_renamed['ticker'].nunique()}")
+        print(f"   Price range: ${df_renamed['price'].min():.2f} - ${df_renamed['price'].max():.2f}")
+        
+        return analyzer
+        
+    except Exception as e:
+        print(f"❌ Manual mapping failed: {e}")
+        return None
