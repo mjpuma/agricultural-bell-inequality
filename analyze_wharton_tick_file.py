@@ -134,7 +134,7 @@ class ComprehensiveBellAnalyzer:
         
         print(f"\n💡 COLUMN MAPPING DETECTION:")
         
-        # Try to identify columns intelligently
+        # Try to identify columns intelligently - FIXED FOR YOUR DATA FORMAT
         possible_mappings = {
             'ticker': None,
             'price': None,
@@ -144,292 +144,260 @@ class ComprehensiveBellAnalyzer:
         }
         
         for col in df_sample.columns:
-            col_lower = col.lower()
-            # Check for ticker/symbol
-            if any(word in col_lower for word in ['sym', 'ticker', 'symbol', 'stock', 'root']):
-                possible_mappings['ticker'] = col
-                print(f"   🎯 Detected ticker column: '{col}'")
+            col_lower = col.lower().strip()
             
-            # Check for price
-            if any(word in col_lower for word in ['price', 'px', 'last', 'close']):
+            # FIXED: Specifically look for SYM_ROOT (your ticker column)
+            if 'sym_root' in col_lower:
+                possible_mappings['ticker'] = col
+                print(f"   🎯 Detected ticker column: '{col}' (SYM_ROOT)")
+            elif any(word in col_lower for word in ['sym', 'ticker', 'symbol', 'stock']) and 'root' not in col_lower and 'suffix' not in col_lower:
+                if possible_mappings['ticker'] is None:  # Only if SYM_ROOT not found
+                    possible_mappings['ticker'] = col
+                    print(f"   🎯 Detected ticker column: '{col}'")
+            
+            # Check for price - FIXED to be more specific
+            if col_lower == 'price':
+                possible_mappings['price'] = col
+                print(f"   💰 Detected price column: '{col}'")
+            elif any(word in col_lower for word in ['px', 'last', 'close']) and 'price' not in possible_mappings.values():
                 possible_mappings['price'] = col
                 print(f"   💰 Detected price column: '{col}'")
             
-            # Check for size/volume
-            if any(word in col_lower for word in ['size', 'volume', 'qty', 'quantity']):
+            # Check for size/volume - FIXED to be more specific  
+            if col_lower == 'size':
+                possible_mappings['size'] = col
+                print(f"   📊 Detected size column: '{col}'")
+            elif any(word in col_lower for word in ['volume', 'qty', 'quantity']) and 'size' not in possible_mappings.values():
                 possible_mappings['size'] = col
                 print(f"   📊 Detected size column: '{col}'")
             
-            # Check for date
-            if any(word in col_lower for word in ['date', 'day', 'dt']):
+            # Check for date - FIXED
+            if col_lower == 'date' or 'date' in col_lower:
                 possible_mappings['date'] = col
                 print(f"   📅 Detected date column: '{col}'")
             
-            # Check for time
-            if any(word in col_lower for word in ['time', 'tm', 'timestamp']) and 'date' not in col_lower:
+            # Check for time - FIXED to handle TIME_M
+            if 'time' in col_lower and 'date' not in col_lower:
                 possible_mappings['time'] = col
                 print(f"   ⏰ Detected time column: '{col}'")
+        
+        # ADDITIONAL VALIDATION: Check if ticker column actually contains stock symbols
+        if possible_mappings['ticker']:
+            ticker_col = possible_mappings['ticker']
+            sample_tickers = df_sample[ticker_col].unique()
+            print(f"\n🔍 VALIDATING TICKER COLUMN '{ticker_col}':")
+            print(f"   Sample values: {list(sample_tickers)}")
+            
+            # Check if it looks like stock symbols
+            valid_ticker_count = 0
+            for ticker in sample_tickers:
+                if isinstance(ticker, str) and len(ticker.strip()) >= 1 and ticker.strip().isalpha():
+                    valid_ticker_count += 1
+            
+            validation_pct = (valid_ticker_count / len(sample_tickers)) * 100 if len(sample_tickers) > 0 else 0
+            print(f"   Validation: {valid_ticker_count}/{len(sample_tickers)} look like stock symbols ({validation_pct:.0f}%)")
+            
+            if validation_pct < 50:
+                print(f"   ⚠️  Warning: This may not be the correct ticker column")
         
         # Validation
         missing_mappings = [k for k, v in possible_mappings.items() if v is None and k in ['ticker', 'price', 'size']]
         if missing_mappings:
             print(f"⚠️  Could not auto-detect columns: {missing_mappings}")
             print(f"Available columns: {list(df_sample.columns)}")
+            
+            # MANUAL OVERRIDE for your specific format
+            print(f"\n🔧 APPLYING MANUAL OVERRIDE FOR YOUR DATA FORMAT...")
+            for col in df_sample.columns:
+                col_clean = col.strip()
+                if 'SYM_ROOT' in col_clean and possible_mappings['ticker'] is None:
+                    possible_mappings['ticker'] = col_clean
+                    print(f"   🔧 Manual override - ticker: '{col_clean}'")
+                elif 'PRICE' in col_clean and possible_mappings['price'] is None:
+                    possible_mappings['price'] = col_clean
+                    print(f"   🔧 Manual override - price: '{col_clean}'")
+                elif 'SIZE' in col_clean and possible_mappings['size'] is None:
+                    possible_mappings['size'] = col_clean
+                    print(f"   🔧 Manual override - size: '{col_clean}'")
         else:
             print(f"✅ Successfully detected all required column mappings")
         
         return df_sample, possible_mappings
     
     def _load_tick_data_detailed_fixed(self, file_path):
-        """FIXED: Load tick data with intelligent column detection and focus asset tracking"""
-        
-        print("\n📊 DETAILED TICK DATA LOADING (FIXED VERSION)")
-        print("=" * 50)
-        
-        # Step 1: Inspect data structure
-        sample_df, column_mapping = self._inspect_data_structure(file_path)
-        if sample_df is None or column_mapping is None:
-            return None
-        
-        # Store the mapping for later use
-        self.column_mapping = column_mapping
-        
-        # Check if we have the minimum required columns
-        required_cols = ['ticker', 'price', 'size']
-        missing_required = [col for col in required_cols if column_mapping.get(col) is None]
-        if missing_required:
-            print(f"❌ Missing required columns: {missing_required}")
-            print(f"Cannot proceed without: ticker, price, size columns")
-            return None
-        
-        # Step 2: Load full dataset
-        print(f"\n📂 LOADING FULL DATASET...")
-        if file_path.endswith('.gz'):
-            with gzip.open(file_path, 'rt') as f:
-                df = pd.read_csv(f, sep=',')
-        else:
-            df = pd.read_csv(file_path, sep=',')
-        
-        print(f"✅ Raw data loaded: {len(df):,} rows")
-        print(f"📋 Columns: {list(df.columns)}")
-        
-        # Step 3: Apply column mapping with validation
-        print(f"\n🔄 APPLYING COLUMN MAPPING...")
-        
-        # Create renamed dataframe
-        df_renamed = df.copy()
-        
-        # Map the essential columns
-        essential_mappings = {
-            'ticker': column_mapping['ticker'],
-            'price': column_mapping['price'], 
-            'size': column_mapping['size']
-        }
-        
-        for target_col, source_col in essential_mappings.items():
-            if source_col and source_col in df.columns:
-                df_renamed[target_col] = df[source_col]
-                print(f"✅ Mapped '{source_col}' → '{target_col}'")
-                
-                # Validate the data looks reasonable
-                if target_col == 'ticker':
-                    unique_tickers = df_renamed[target_col].nunique()
-                    print(f"   Found {unique_tickers} unique tickers")
-                elif target_col == 'price':
-                    price_stats = df_renamed[target_col].describe()
-                    print(f"   Price range: ${price_stats['min']:.2f} - ${price_stats['max']:.2f}")
-                elif target_col == 'size':
-                    size_stats = df_renamed[target_col].describe()
-                    print(f"   Size range: {size_stats['min']:,.0f} - {size_stats['max']:,.0f}")
-            else:
-                print(f"❌ Failed to map {target_col} (source: {source_col})")
+            """SIMPLE: Load tick data and immediately filter to ONLY focus assets"""
+            
+            print("\n📊 LOADING DATA WITH FOCUS ASSET FILTERING")
+            print("=" * 50)
+            print(f"🎯 Will ONLY load data for: {self.focus_assets}")
+            
+            # Step 1: Inspect data structure
+            sample_df, column_mapping = self._inspect_data_structure(file_path)
+            if sample_df is None or column_mapping is None:
                 return None
-        
-        # Step 4: Handle datetime creation with multiple strategies
-        print(f"\n⏰ CREATING DATETIME INDEX...")
-        datetime_created = False
-        
-        # Strategy 1: Separate date and time columns
-        if column_mapping.get('date') and column_mapping.get('time'):
-            date_col = column_mapping['date']
-            time_col = column_mapping['time']
             
-            if date_col in df.columns and time_col in df.columns:
-                print(f"🕐 Attempting datetime from '{date_col}' + '{time_col}'")
-                try:
-                    # Show sample of what we're trying to parse
-                    sample_datetime = str(df[date_col].iloc[0]) + ' ' + str(df[time_col].iloc[0])
-                    print(f"   Sample datetime string: '{sample_datetime}'")
-                    
-                    datetime_strings = df[date_col].astype(str) + ' ' + df[time_col].astype(str)
-                    df_renamed['datetime'] = pd.to_datetime(datetime_strings, format='%Y-%m-%d %H:%M:%S.%f', errors='coerce')
-                    
-                    # Check if parsing worked
-                    valid_dates = df_renamed['datetime'].notna().sum()
-                    if valid_dates > len(df) * 0.5:  # At least 50% valid dates
-                        datetime_created = True
-                        print(f"✅ DateTime created successfully ({valid_dates:,}/{len(df):,} valid)")
-                    else:
-                        print(f"⚠️  DateTime parsing had issues ({valid_dates:,}/{len(df):,} valid)")
-                        
-                        # Try alternative format
-                        df_renamed['datetime'] = pd.to_datetime(datetime_strings, errors='coerce')
-                        valid_dates = df_renamed['datetime'].notna().sum()
-                        if valid_dates > len(df) * 0.5:
-                            datetime_created = True
-                            print(f"✅ DateTime created with auto-detection ({valid_dates:,} valid)")
-                        
-                except Exception as e:
-                    print(f"⚠️  Error creating datetime: {e}")
-        
-        # Strategy 2: Look for existing datetime/timestamp column
-        if not datetime_created:
-            for col in df.columns:
-                if any(word in col.lower() for word in ['timestamp', 'datetime', 'dt']):
-                    try:
-                        df_renamed['datetime'] = pd.to_datetime(df[col], errors='coerce')
-                        valid_dates = df_renamed['datetime'].notna().sum()
-                        if valid_dates > len(df) * 0.5:
-                            datetime_created = True
-                            print(f"✅ Used existing '{col}' column as datetime ({valid_dates:,} valid)")
-                            break
-                    except:
-                        continue
-        
-        # Strategy 3: Fallback to index-based timestamps
-        if not datetime_created:
-            print("⚠️  Could not create meaningful datetime, using sequential timestamps")
-            start_time = pd.Timestamp('2024-01-01 09:30:00')
-            df_renamed['datetime'] = [start_time + pd.Timedelta(seconds=i*0.01) for i in range(len(df))]
-            datetime_created = True
-        
-        # Step 5: Data cleaning and validation
-        print(f"\n🧹 DATA CLEANING AND VALIDATION...")
-        
-        # Convert price and size to numeric
-        df_renamed['price'] = pd.to_numeric(df_renamed['price'], errors='coerce')
-        df_renamed['size'] = pd.to_numeric(df_renamed['size'], errors='coerce')
-        
-        # Remove invalid data
-        initial_rows = len(df_renamed)
-        df_renamed = df_renamed.dropna(subset=['ticker', 'price', 'size', 'datetime'])
-        final_rows = len(df_renamed)
-        
-        print(f"   Removed {initial_rows - final_rows:,} invalid rows")
-        print(f"   Final dataset: {final_rows:,} rows")
-        
-        if final_rows < 100:
-            print(f"❌ Insufficient data after cleaning ({final_rows} rows)")
-            return None
-        
-        # Sort by datetime
-        df_renamed = df_renamed.sort_values('datetime')
-        
-        # Step 6: FOCUS ASSET DETAILED ANALYSIS
-        print(f"\n🎯 FOCUS ASSET DETAILED TRACKING")
-        print("=" * 50)
-        
-        ticker_stats = df_renamed['ticker'].value_counts()
-        print(f"   Unique tickers: {len(ticker_stats)}")
-        print(f"   Target focus assets: {self.focus_assets}")
-        
-        # Initialize focus diagnostics
-        for focus_asset in self.focus_assets:
-            self.focus_diagnostics[focus_asset] = {
-                'found_in_raw': False,
-                'tick_count': 0,
-                'issues': []
-            }
-        
-        # Check each focus asset in detail
-        print(f"\n🔍 DETAILED FOCUS ASSET ANALYSIS:")
-        focus_found = []
-        focus_missing = []
-        
-        for focus_asset in self.focus_assets:
-            if focus_asset in ticker_stats.index:
-                focus_found.append(focus_asset)
-                count = ticker_stats[focus_asset]
-                asset_data = df_renamed[df_renamed['ticker'] == focus_asset]
-                prices = asset_data['price']
-                
-                # Store detailed diagnostics
-                self.focus_diagnostics[focus_asset].update({
-                    'found_in_raw': True,
-                    'tick_count': count,
-                    'price_range': f"${prices.min():.2f}-${prices.max():.2f}",
-                    'price_mean': prices.mean(),
-                    'price_std': prices.std(),
-                    'date_range': f"{asset_data['datetime'].min()} to {asset_data['datetime'].max()}",
-                    'time_span_hours': (asset_data['datetime'].max() - asset_data['datetime'].min()).total_seconds() / 3600
-                })
-                
-                print(f"   🎯 {focus_asset}:")
-                print(f"      Ticks: {count:,} ({count/len(df_renamed)*100:.1f}% of data)")
-                print(f"      Price: ${prices.min():.2f} - ${prices.max():.2f} (μ=${prices.mean():.2f}, σ=${prices.std():.2f})")
-                print(f"      Time span: {self.focus_diagnostics[focus_asset]['time_span_hours']:.1f} hours")
-                
-                # Check for potential issues
-                issues = []
-                if count < 50:
-                    issues.append(f'Low tick count ({count})')
-                if prices.std() < prices.mean() * 0.001:
-                    issues.append('Very low price volatility')
-                if self.focus_diagnostics[focus_asset]['time_span_hours'] < 1:
-                    issues.append('Short time coverage')
-                
-                self.focus_diagnostics[focus_asset]['issues'] = issues
-                if issues:
-                    for issue in issues:
-                        print(f"      ⚠️  {issue}")
+            # Store the mapping for later use
+            self.column_mapping = column_mapping
+            
+            # Check if we have the minimum required columns
+            required_cols = ['ticker', 'price', 'size']
+            missing_required = [col for col in required_cols if column_mapping.get(col) is None]
+            if missing_required:
+                print(f"❌ Missing required columns: {missing_required}")
+                return None
+            
+            # Step 2: Load full dataset
+            print(f"\n📂 LOADING FULL DATASET...")
+            try:
+                if file_path.endswith('.gz'):
+                    with gzip.open(file_path, 'rt') as f:
+                        df = pd.read_csv(f, sep=',')
                 else:
-                    print(f"      ✅ Data quality looks good")
+                    df = pd.read_csv(file_path, sep=',')
                 
-            else:
-                focus_missing.append(focus_asset)
-                print(f"   ❌ {focus_asset}: NOT FOUND")
-        
-        if focus_missing:
-            print(f"\n⚠️  FOCUS ASSETS NOT FOUND: {focus_missing}")
-            print(f"   Available tickers (first 30): {list(ticker_stats.head(30).index)}")
+                print(f"✅ Raw data loaded: {len(df):,} rows")
+            except Exception as e:
+                print(f"❌ Error loading data: {e}")
+                return None
             
-            # Suggest similar tickers
-            for missing in focus_missing:
-                similar = [t for t in ticker_stats.head(50).index if missing.lower() in t.lower() or t.lower() in missing.lower()]
-                if similar:
-                    print(f"   💡 Similar to '{missing}': {similar}")
-        
-        if focus_found:
-            print(f"\n✅ FOCUS ASSETS AVAILABLE: {focus_found}")
-        else:
-            print(f"\n❌ NO FOCUS ASSETS FOUND IN DATA!")
-        
-        # Step 7: Final validation and statistics
-        print(f"\n📈 FINAL DATA VALIDATION:")
-        print(f"   Date range: {df_renamed['datetime'].min()} to {df_renamed['datetime'].max()}")
-        print(f"   Time span: {(df_renamed['datetime'].max() - df_renamed['datetime'].min()).total_seconds() / 3600:.1f} hours")
-        
-        # Overall price validation  
-        overall_price_stats = df_renamed['price'].describe()
-        print(f"   Price range: ${overall_price_stats['min']:.2f} - ${overall_price_stats['max']:.2f}")
-        print(f"   Mean price: ${overall_price_stats['mean']:.2f}")
-        
-        # Size validation
-        overall_size_stats = df_renamed['size'].describe()  
-        print(f"   Size range: {overall_size_stats['min']:,.0f} - {overall_size_stats['max']:,.0f}")
-        
-        # Time gaps analysis
-        print(f"\n⏱️  TIME GAPS ANALYSIS:")
-        time_diffs = df_renamed['datetime'].diff().dt.total_seconds()
-        print(f"   Median time between ticks: {time_diffs.median():.6f} seconds")
-        print(f"   Mean time between ticks: {time_diffs.mean():.6f} seconds")
-        large_gaps = (time_diffs > 1).sum()
-        print(f"   Time gaps > 1 second: {large_gaps:,} ({large_gaps/len(time_diffs)*100:.1f}%)")
-        
-        print(f"\n✅ DATA LOADING COMPLETE - READY FOR ANALYSIS")
-        
-        return df_renamed
-    
+            # Step 3: Apply column mapping
+            print(f"\n🔄 APPLYING COLUMN MAPPING...")
+            df_renamed = df.copy()
+            
+            essential_mappings = {
+                'ticker': column_mapping['ticker'],
+                'price': column_mapping['price'], 
+                'size': column_mapping['size']
+            }
+            
+            for target_col, source_col in essential_mappings.items():
+                if source_col and source_col in df.columns:
+                    df_renamed[target_col] = df[source_col]
+                    print(f"✅ Mapped '{source_col}' → '{target_col}'")
+                else:
+                    print(f"❌ Failed to map {target_col}")
+                    return None
+            
+            # Step 4: IMMEDIATELY FILTER TO ONLY FOCUS ASSETS
+            print(f"\n🎯 FILTERING TO FOCUS ASSETS ONLY...")
+            print(f"   Target assets: {self.focus_assets}")
+            
+            # Check what's available before filtering
+            all_tickers = df_renamed['ticker'].value_counts()
+            print(f"   Available tickers: {list(all_tickers.head(10).index)}")
+            
+            # Filter to ONLY focus assets
+            focus_mask = df_renamed['ticker'].isin(self.focus_assets)
+            df_filtered = df_renamed[focus_mask].copy()
+            
+            print(f"   Before filtering: {len(df_renamed):,} rows")
+            print(f"   After filtering: {len(df_filtered):,} rows")
+            
+            if len(df_filtered) == 0:
+                print(f"\n❌ NO DATA FOR FOCUS ASSETS!")
+                print(f"   Your focus assets: {self.focus_assets}")
+                print(f"   Available in data: {list(all_tickers.head(20).index)}")
+                print(f"   💡 Try: run_comprehensive_analysis(focus_assets={list(all_tickers.head(3).index)})")
+                return None
+            
+            # Check which focus assets we actually got
+            found_tickers = df_filtered['ticker'].value_counts()
+            found_assets = list(found_tickers.index)
+            missing_assets = [asset for asset in self.focus_assets if asset not in found_assets]
+            
+            print(f"\n📊 FOCUS ASSET RESULTS:")
+            for asset in self.focus_assets:
+                if asset in found_tickers:
+                    print(f"   ✅ {asset}: {found_tickers[asset]:,} ticks")
+                    self.focus_diagnostics[asset] = {
+                        'found_in_raw': True,
+                        'tick_count': found_tickers[asset],
+                        'issues': []
+                    }
+                else:
+                    print(f"   ❌ {asset}: NOT FOUND")
+                    self.focus_diagnostics[asset] = {
+                        'found_in_raw': False,
+                        'tick_count': 0,
+                        'issues': ['Not found in data']
+                    }
+            
+            if missing_assets:
+                print(f"\n⚠️  MISSING FOCUS ASSETS: {missing_assets}")
+                if len(found_assets) < 2:
+                    print(f"❌ Need at least 2 focus assets for Bell tests")
+                    print(f"✅ Found: {found_assets}")
+                    print(f"💡 Add more assets or get data with missing assets")
+                    return None
+            
+            print(f"\n✅ PROCEEDING WITH: {found_assets}")
+            
+            # Step 5: Clean the filtered data
+            print(f"\n🧹 CLEANING FILTERED DATA...")
+            
+            # Convert to numeric
+            df_filtered['price'] = pd.to_numeric(df_filtered['price'], errors='coerce')
+            df_filtered['size'] = pd.to_numeric(df_filtered['size'], errors='coerce')
+            
+            # Create datetime
+            if column_mapping.get('date') and column_mapping.get('time'):
+                date_col = column_mapping['date']
+                time_col = column_mapping['time']
+                
+                try:
+                    datetime_strings = df_filtered[date_col].astype(str) + ' ' + df_filtered[time_col].astype(str)
+                    df_filtered['datetime'] = pd.to_datetime(datetime_strings, errors='coerce')
+                    valid_dates = df_filtered['datetime'].notna().sum()
+                    if valid_dates > len(df_filtered) * 0.5:
+                        print(f"✅ DateTime created from {date_col} + {time_col}")
+                    else:
+                        raise ValueError("Too many invalid dates")
+                except:
+                    print(f"⚠️  Using sequential timestamps")
+                    start_time = pd.Timestamp('2025-07-21 09:30:00')
+                    df_filtered['datetime'] = [start_time + pd.Timedelta(seconds=i*0.1) for i in range(len(df_filtered))]
+            else:
+                print(f"⚠️  Using sequential timestamps")
+                start_time = pd.Timestamp('2025-07-21 09:30:00') 
+                df_filtered['datetime'] = [start_time + pd.Timedelta(seconds=i*0.1) for i in range(len(df_filtered))]
+            
+            # Remove invalid data
+            initial_rows = len(df_filtered)
+            df_filtered = df_filtered.dropna(subset=['ticker', 'price', 'size', 'datetime'])
+            final_rows = len(df_filtered)
+            
+            print(f"   Removed {initial_rows - final_rows:,} invalid rows")
+            print(f"   Final clean data: {final_rows:,} rows")
+            
+            if final_rows < 100:
+                print(f"❌ Insufficient data after cleaning ({final_rows} rows)")
+                return None
+            
+            # Sort by datetime
+            df_filtered = df_filtered.sort_values('datetime')
+            
+            # Final validation
+            final_tickers = df_filtered['ticker'].value_counts()
+            print(f"\n📈 FINAL FOCUS-ONLY DATASET:")
+            print(f"   Time span: {(df_filtered['datetime'].max() - df_filtered['datetime'].min()).total_seconds() / 3600:.1f} hours")
+            
+            for ticker, count in final_tickers.items():
+                asset_data = df_filtered[df_filtered['ticker'] == ticker]
+                price_range = f"${asset_data['price'].min():.2f}-${asset_data['price'].max():.2f}"
+                print(f"   🎯 {ticker}: {count:,} ticks, {price_range}")
+                
+                # Update diagnostics with final stats
+                if ticker in self.focus_diagnostics:
+                    self.focus_diagnostics[ticker].update({
+                        'price_range': price_range,
+                        'final_tick_count': count,
+                        'time_span_hours': (asset_data['datetime'].max() - asset_data['datetime'].min()).total_seconds() / 3600
+                    })
+            
+            print(f"\n✅ FOCUS-FILTERED DATA READY FOR ANALYSIS")
+            print(f"🎯 Dataset contains ONLY your specified focus assets!")
+            
+            return df_filtered    
     def _create_bars_all_methods_fixed(self, frequency):
         """FIXED: Create bars with focus asset prioritization and lower thresholds"""
         
