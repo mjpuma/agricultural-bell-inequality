@@ -87,6 +87,10 @@ class ComprehensiveBellAnalyzer:
         # Step 8: Comprehensive visualization (FIXED - shows all focus assets)
         self._create_comprehensive_visualizations_fixed()
         
+        # Step 8.5: ADD THIS LINE
+        mandelbrot_analysis = self._calculate_mandelbrot_metrics()
+        self._create_mandelbrot_plots()
+        
         # Step 9: Conditional Bell visualizations (prioritize focus group)
         self._create_conditional_bell_visualizations()
         
@@ -1255,6 +1259,375 @@ class ComprehensiveBellAnalyzer:
                 continue
         
         return robustness_results
+    
+    def _calculate_mandelbrot_metrics(self):
+        """Calculate Mandelbrot fractal metrics for focus assets"""
+        
+        print(f"\n🌀 MANDELBROT FRACTAL ANALYSIS")
+        print("=" * 50)
+        print(f"Focus assets: {self.focus_assets}")
+        
+        mandelbrot_results = {}
+        
+        for method_name, method_data in self.method_data.items():
+            print(f"\n📊 FRACTAL ANALYSIS: {method_name}")
+            print("   " + "-" * 30)
+            
+            method_fractals = {}
+            
+            for ticker, bars in method_data.items():
+                if ticker not in self.focus_assets:
+                    continue
+                    
+                returns = bars['Returns'].dropna()
+                if len(returns) < 50:  # Need sufficient data
+                    print(f"   🎯 {ticker}: ❌ Insufficient data ({len(returns)} returns)")
+                    continue
+                
+                print(f"   🎯 {ticker}: Calculating fractal metrics...")
+                
+                # 1. Hurst Exponent using R/S analysis
+                hurst = self._calculate_hurst_exponent(returns)
+                
+                # 2. Fractal Dimension
+                fractal_dim = 2 - hurst
+                
+                # 3. R/S Statistics  
+                rs_stats = self._calculate_rs_statistics(returns)
+                
+                # 4. Simple Multifractal measure
+                multifractal = self._calculate_multifractal_simple(returns)
+                
+                fractal_metrics = {
+                    'hurst_exponent': hurst,
+                    'fractal_dimension': fractal_dim,
+                    'rs_slope': rs_stats['slope'],
+                    'rs_intercept': rs_stats['intercept'],
+                    'rs_r_squared': rs_stats['r_squared'],
+                    'multifractal_width': multifractal['spectrum_width'],
+                    'multifractal_asymmetry': multifractal['asymmetry']
+                }
+                
+                method_fractals[ticker] = fractal_metrics
+                
+                # Interpretation
+                if hurst > 0.55:
+                    behavior = "🔄 Persistent (trending)"
+                elif hurst < 0.45:
+                    behavior = "↩️  Anti-persistent (mean-reverting)"
+                else:
+                    behavior = "🎲 Random walk-like"
+                
+                print(f"      Hurst Exponent: {hurst:.4f} - {behavior}")
+                print(f"      Fractal Dimension: {fractal_dim:.4f}")
+                print(f"      R/S R²: {rs_stats['r_squared']:.4f}")
+                print(f"      Multifractal Width: {multifractal['spectrum_width']:.4f}")
+            
+            mandelbrot_results[method_name] = method_fractals
+        
+        self.mandelbrot_results = mandelbrot_results
+        return mandelbrot_results
+    
+    def _calculate_hurst_exponent(self, returns):
+        """Calculate Hurst exponent using R/S analysis"""
+        
+        # Convert to price series for R/S analysis
+        prices = (1 + returns).cumprod()
+        
+        # Different time lags
+        lags = np.logspace(np.log10(10), np.log10(len(returns)//4), 20).astype(int)
+        lags = np.unique(lags)
+        
+        rs_values = []
+        
+        for lag in lags:
+            if lag >= len(returns):
+                continue
+                
+            # Split into segments
+            n_segments = len(returns) // lag
+            if n_segments < 2:
+                continue
+            
+            rs_segment = []
+            
+            for i in range(n_segments):
+                start_idx = i * lag
+                end_idx = start_idx + lag
+                segment = returns.iloc[start_idx:end_idx]
+                
+                if len(segment) < lag:
+                    continue
+                
+                # R/S calculation for this segment
+                mean_return = segment.mean()
+                deviations = segment - mean_return
+                cumulative_deviations = deviations.cumsum()
+                
+                R = cumulative_deviations.max() - cumulative_deviations.min()  # Range
+                S = segment.std()  # Standard deviation
+                
+                if S > 0:
+                    rs_segment.append(R / S)
+            
+            if rs_segment:
+                rs_values.append(np.mean(rs_segment))
+        
+        if len(rs_values) < 5:
+            return 0.5  # Default to random walk
+        
+        # Linear regression: log(R/S) = H * log(n) + constant
+        log_lags = np.log(lags[:len(rs_values)])
+        log_rs = np.log(rs_values)
+        
+        # Remove any infinite values
+        valid_mask = np.isfinite(log_lags) & np.isfinite(log_rs)
+        if valid_mask.sum() < 3:
+            return 0.5
+        
+        log_lags = log_lags[valid_mask]
+        log_rs = log_rs[valid_mask]
+        
+        # Linear regression
+        slope, intercept = np.polyfit(log_lags, log_rs, 1)
+        
+        return max(0.1, min(0.9, slope))  # Constrain to reasonable range
+    
+    def _calculate_rs_statistics(self, returns):
+        """Calculate R/S statistics for validation"""
+        
+        # Same as Hurst calculation but return more stats
+        prices = (1 + returns).cumprod()
+        lags = np.logspace(np.log10(10), np.log10(len(returns)//4), 15).astype(int)
+        lags = np.unique(lags)
+        
+        rs_values = []
+        
+        for lag in lags:
+            if lag >= len(returns):
+                continue
+                
+            n_segments = len(returns) // lag
+            if n_segments < 2:
+                continue
+            
+            rs_segment = []
+            
+            for i in range(n_segments):
+                start_idx = i * lag
+                end_idx = start_idx + lag
+                segment = returns.iloc[start_idx:end_idx]
+                
+                if len(segment) < lag:
+                    continue
+                
+                mean_return = segment.mean()
+                deviations = segment - mean_return
+                cumulative_deviations = deviations.cumsum()
+                
+                R = cumulative_deviations.max() - cumulative_deviations.min()
+                S = segment.std()
+                
+                if S > 0:
+                    rs_segment.append(R / S)
+            
+            if rs_segment:
+                rs_values.append(np.mean(rs_segment))
+        
+        if len(rs_values) < 3:
+            return {'slope': 0.5, 'intercept': 0, 'r_squared': 0}
+        
+        log_lags = np.log(lags[:len(rs_values)])
+        log_rs = np.log(rs_values)
+        
+        valid_mask = np.isfinite(log_lags) & np.isfinite(log_rs)
+        if valid_mask.sum() < 3:
+            return {'slope': 0.5, 'intercept': 0, 'r_squared': 0}
+        
+        log_lags = log_lags[valid_mask]
+        log_rs = log_rs[valid_mask]
+        
+        slope, intercept = np.polyfit(log_lags, log_rs, 1)
+        
+        # Calculate R-squared
+        predicted = slope * log_lags + intercept
+        ss_res = np.sum((log_rs - predicted) ** 2)
+        ss_tot = np.sum((log_rs - np.mean(log_rs)) ** 2)
+        r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
+        
+        return {
+            'slope': slope,
+            'intercept': intercept,
+            'r_squared': max(0, r_squared)
+        }
+    
+    def _calculate_multifractal_simple(self, returns):
+        """Simple multifractal analysis"""
+        
+        # Use different moments (q values)
+        q_values = np.array([-5, -3, -1, 0, 1, 3, 5])
+        
+        # Different time scales
+        scales = np.logspace(np.log10(5), np.log10(len(returns)//8), 10).astype(int)
+        scales = np.unique(scales)
+        
+        # Calculate fluctuation functions
+        fluctuations = []
+        
+        for scale in scales:
+            if scale >= len(returns):
+                continue
+            
+            # Detrended fluctuation analysis
+            profile = returns.cumsum()
+            segments = len(profile) // scale
+            
+            if segments < 2:
+                continue
+            
+            segment_fluctuations = []
+            
+            for i in range(segments):
+                start_idx = i * scale
+                end_idx = start_idx + scale
+                segment = profile.iloc[start_idx:end_idx]
+                
+                # Linear detrending
+                x = np.arange(len(segment))
+                if len(x) > 1:
+                    slope, intercept = np.polyfit(x, segment, 1)
+                    trend = slope * x + intercept
+                    detrended = segment - trend
+                    segment_fluctuations.append(np.var(detrended))
+            
+            if segment_fluctuations:
+                fluctuations.append(np.mean(segment_fluctuations))
+        
+        if len(fluctuations) < 3:
+            return {'spectrum_width': 0, 'asymmetry': 0}
+        
+        # Simple spectrum width calculation
+        log_scales = np.log(scales[:len(fluctuations)])
+        log_fluct = np.log(fluctuations)
+        
+        valid_mask = np.isfinite(log_scales) & np.isfinite(log_fluct)
+        if valid_mask.sum() < 3:
+            return {'spectrum_width': 0, 'asymmetry': 0}
+        
+        # Estimate spectrum width (simplified)
+        spectrum_width = np.std(log_fluct)
+        asymmetry = np.mean(log_fluct) - np.median(log_fluct)
+        
+        return {
+            'spectrum_width': spectrum_width,
+            'asymmetry': asymmetry
+        }
+    
+    def _create_mandelbrot_plots(self):
+        """Create fractal analysis plots"""
+        
+        if not hasattr(self, 'mandelbrot_results'):
+            print("   ⚠️  No Mandelbrot results to plot")
+            return
+        
+        print("   📊 Creating Mandelbrot fractal plots...")
+        
+        # Find focus assets with fractal data
+        focus_with_fractals = {}
+        for method_name, method_fractals in self.mandelbrot_results.items():
+            for ticker in method_fractals.keys():
+                if ticker in self.focus_assets:
+                    if ticker not in focus_with_fractals:
+                        focus_with_fractals[ticker] = {}
+                    focus_with_fractals[ticker][method_name] = method_fractals[ticker]
+        
+        if not focus_with_fractals:
+            print("   ❌ No fractal data for focus assets")
+            return
+        
+        # Create fractal summary plot
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 12))
+        
+        # Plot 1: Hurst Exponents
+        assets = list(focus_with_fractals.keys())
+        methods = list(self.mandelbrot_results.keys())
+        
+        hurst_data = []
+        fractal_data = []
+        labels = []
+        
+        for asset in assets:
+            for method in methods:
+                if method in focus_with_fractals[asset]:
+                    hurst_data.append(focus_with_fractals[asset][method]['hurst_exponent'])
+                    fractal_data.append(focus_with_fractals[asset][method]['fractal_dimension'])
+                    labels.append(f'{asset}-{method[:4]}')
+        
+        if hurst_data:
+            bars1 = ax1.bar(range(len(hurst_data)), hurst_data, alpha=0.7, color='steelblue')
+            ax1.axhline(y=0.5, color='red', linestyle='--', alpha=0.7, label='Random Walk')
+            ax1.set_ylabel('Hurst Exponent')
+            ax1.set_title('🔄 Hurst Exponents (Focus Assets)')
+            ax1.set_xticks(range(len(labels)))
+            ax1.set_xticklabels(labels, rotation=45)
+            ax1.legend()
+            ax1.grid(True, alpha=0.3)
+            
+            # Add value labels
+            for bar, val in zip(bars1, hurst_data):
+                ax1.text(bar.get_x() + bar.get_width()/2, val + 0.01, 
+                        f'{val:.3f}', ha='center', va='bottom', fontsize=8)
+        
+        # Plot 2: Fractal Dimensions
+        if fractal_data:
+            bars2 = ax2.bar(range(len(fractal_data)), fractal_data, alpha=0.7, color='green')
+            ax2.axhline(y=1.5, color='red', linestyle='--', alpha=0.7, label='Random Walk')
+            ax2.set_ylabel('Fractal Dimension')
+            ax2.set_title('📐 Fractal Dimensions (Focus Assets)')
+            ax2.set_xticks(range(len(labels)))
+            ax2.set_xticklabels(labels, rotation=45)
+            ax2.legend()
+            ax2.grid(True, alpha=0.3)
+        
+        # Plot 3: R/S R-squared values
+        rs_data = []
+        for asset in assets:
+            for method in methods:
+                if method in focus_with_fractals[asset]:
+                    rs_data.append(focus_with_fractals[asset][method]['rs_r_squared'])
+        
+        if rs_data:
+            bars3 = ax3.bar(range(len(rs_data)), rs_data, alpha=0.7, color='orange')
+            ax3.set_ylabel('R² (R/S Fit Quality)')
+            ax3.set_title('📈 R/S Analysis Quality')
+            ax3.set_xticks(range(len(labels)))
+            ax3.set_xticklabels(labels, rotation=45)
+            ax3.grid(True, alpha=0.3)
+        
+        # Plot 4: Multifractal spectrum widths
+        mf_data = []
+        for asset in assets:
+            for method in methods:
+                if method in focus_with_fractals[asset]:
+                    mf_data.append(focus_with_fractals[asset][method]['multifractal_width'])
+        
+        if mf_data:
+            bars4 = ax4.bar(range(len(mf_data)), mf_data, alpha=0.7, color='purple')
+            ax4.set_ylabel('Multifractal Spectrum Width')
+            ax4.set_title('🌀 Multifractal Complexity')
+            ax4.set_xticks(range(len(labels)))
+            ax4.set_xticklabels(labels, rotation=45)
+            ax4.grid(True, alpha=0.3)
+        
+        plt.tight_layout()
+        
+        # Save plot
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        focus_str = "_".join(self.focus_assets)
+        filename = f'mandelbrot_fractals_{focus_str}_{timestamp}.png'
+        plt.savefig(filename, dpi=300, bbox_inches='tight')
+        print(f"   💾 Mandelbrot fractal plots saved: {filename}")
+        plt.show()
     
     # =================== ALL PLOTTING METHODS (FIXED) ===================
     
