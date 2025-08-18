@@ -40,22 +40,68 @@ class BellInequalityAnalyzer:
     binary outcomes to reveal quantum-like correlations.
     """
     
-    def __init__(self, assets=None, data_source='yahoo', period='6mo'):
+    def __init__(self, assets=None, data_source='yahoo', period='6mo', 
+                 start_date=None, end_date=None):
         """
         Initialize the Bell inequality analyzer.
         
         Parameters:
         -----------
         assets : list, optional
-            List of asset symbols to analyze. Default: tech stocks
+            List of asset symbols to analyze. Can be stocks, ETFs, commodities, etc.
+            Default: ['AAPL', 'MSFT', 'GOOGL', 'NVDA', 'TSLA', 'META']
+            
         data_source : str, optional
             Data source ('yahoo' or 'wdrs'). Default: 'yahoo'
+            
         period : str, optional
-            Data period for Yahoo Finance ('6mo', '1y', etc.). Default: '6mo'
+            Data period for Yahoo Finance ('1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'max').
+            Ignored if start_date and end_date are provided. Default: '6mo'
+            
+        start_date : str or datetime, optional
+            Start date for custom date range (e.g., '2020-01-01', '2008-09-01').
+            If provided, overrides period parameter.
+            
+        end_date : str or datetime, optional
+            End date for custom date range (e.g., '2023-12-31', '2009-03-31').
+            If provided, overrides period parameter.
+            
+        Examples:
+        ---------
+        # Tech stocks, 6 months
+        analyzer = BellInequalityAnalyzer()
+        
+        # Financial sector, 2 years
+        analyzer = BellInequalityAnalyzer(
+            assets=['JPM', 'BAC', 'WFC', 'C', 'GS', 'MS'],
+            period='2y'
+        )
+        
+        # Commodities analysis
+        analyzer = BellInequalityAnalyzer(
+            assets=['GLD', 'SLV', 'USO', 'DBA', 'CORN'],
+            period='1y'
+        )
+        
+        # Crisis period analysis (COVID crash)
+        analyzer = BellInequalityAnalyzer(
+            assets=['AAPL', 'MSFT', 'SPY', 'VIX'],
+            start_date='2020-02-01',
+            end_date='2020-04-30'
+        )
+        
+        # Financial crisis analysis
+        analyzer = BellInequalityAnalyzer(
+            assets=['JPM', 'BAC', 'AIG', 'C'],
+            start_date='2008-09-01',
+            end_date='2009-03-31'
+        )
         """
         self.assets = assets or ['AAPL', 'MSFT', 'GOOGL', 'NVDA', 'TSLA', 'META']
         self.data_source = data_source
         self.period = period
+        self.start_date = start_date
+        self.end_date = end_date
         
         # Data storage
         self.raw_data = None
@@ -91,19 +137,37 @@ class BellInequalityAnalyzer:
             return False
     
     def _load_yahoo_finance_data(self):
-        """Load data from Yahoo Finance."""
+        """Load data from Yahoo Finance with flexible date handling."""
         try:
-            end_date = datetime.now()
-            
-            # Calculate start date based on period
-            if self.period == '6mo':
-                start_date = end_date - timedelta(days=180)
-            elif self.period == '1y':
-                start_date = end_date - timedelta(days=365)
-            elif self.period == '2y':
-                start_date = end_date - timedelta(days=730)
+            # Handle custom date ranges
+            if self.start_date and self.end_date:
+                # Use custom date range
+                if isinstance(self.start_date, str):
+                    start_date = pd.to_datetime(self.start_date)
+                else:
+                    start_date = self.start_date
+                    
+                if isinstance(self.end_date, str):
+                    end_date = pd.to_datetime(self.end_date)
+                else:
+                    end_date = self.end_date
+                    
+                print(f"📅 Using custom date range: {start_date.date()} to {end_date.date()}")
+                
             else:
-                start_date = end_date - timedelta(days=180)  # Default to 6 months
+                # Use period-based date calculation
+                end_date = datetime.now()
+                
+                # Enhanced period handling
+                period_days = {
+                    '1mo': 30, '3mo': 90, '6mo': 180, '1y': 365, 
+                    '2y': 730, '3y': 1095, '5y': 1825, '10y': 3650
+                }
+                
+                days = period_days.get(self.period, 180)  # Default to 6 months
+                start_date = end_date - timedelta(days=days)
+                
+                print(f"📅 Using period: {self.period} ({start_date.date()} to {end_date.date()})")
             
             # Download data
             self.raw_data = yf.download(self.assets, start=start_date, end=end_date)['Close']
