@@ -19,6 +19,7 @@ import yfinance as yf
 from scipy import stats
 
 from src.results_manager import ResultsManager
+from src.cross_mandelbrot_analyzer import CrossMandelbrotAnalyzer
 
 def run_food_systems_analysis():
     """Run comprehensive food systems Bell inequality analysis"""
@@ -66,6 +67,10 @@ def run_food_systems_analysis():
                 
         except Exception as e:
             print(f"   ❌ Error analyzing {asset1}-{asset2}: {e}")
+    
+    # Run Cross-Mandelbrot analysis on successful pairs
+    if analysis_results:
+        run_cross_mandelbrot_analysis(analysis_results, results_mgr)
     
     # Create summary
     create_analysis_summary(analysis_results, results_mgr)
@@ -349,6 +354,70 @@ def create_correlation_table(returns1, returns2, rolling_corr, rolling_vol1, rol
     })
     
     return correlation_table
+
+def run_cross_mandelbrot_analysis(analysis_results, results_mgr):
+    """Run Cross-Mandelbrot fractal analysis on successful pairs"""
+    
+    print(f"\n🌀 CROSS-MANDELBROT FRACTAL ANALYSIS")
+    print("-" * 40)
+    print("🎯 Analyzing fractal relationships between food system pairs")
+    
+    try:
+        # Collect data for all successful pairs
+        mandelbrot_data = {}
+        
+        for pair_name, results in analysis_results.items():
+            if results['violation_rate'] > 20:  # Only analyze pairs with significant violations
+                asset1, asset2 = pair_name.split('-')
+                
+                # Download fresh data for Mandelbrot analysis
+                data = download_pair_data(asset1, asset2)
+                if data is not None:
+                    returns = data.pct_change().dropna()
+                    mandelbrot_data[asset1] = returns[asset1]
+                    mandelbrot_data[asset2] = returns[asset2]
+        
+        if len(mandelbrot_data) >= 2:
+            # Initialize Cross-Mandelbrot analyzer
+            mandelbrot_analyzer = CrossMandelbrotAnalyzer()
+            
+            # Run comprehensive analysis
+            mandelbrot_results = mandelbrot_analyzer.analyze_cross_mandelbrot_comprehensive(mandelbrot_data)
+            
+            # Save Cross-Mandelbrot results
+            if mandelbrot_results:
+                # Create summary DataFrame
+                mandelbrot_summary = []
+                for pair_name, metrics in mandelbrot_results.items():
+                    mandelbrot_summary.append({
+                        'Pair': pair_name,
+                        'Cross_Hurst': metrics.get('cross_hurst', 0),
+                        'Cross_Correlation_Decay': metrics.get('cross_correlation_decay', 0),
+                        'Cross_Volatility_Clustering': metrics.get('cross_volatility_clustering', 0),
+                        'Lead_Lag_Strength': metrics.get('lead_lag_strength', 0),
+                        'Fractal_Dimension': metrics.get('fractal_dimension', 0)
+                    })
+                
+                mandelbrot_df = pd.DataFrame(mandelbrot_summary)
+                results_mgr.save_excel(mandelbrot_df, 'Cross_Mandelbrot_Analysis.xlsx', 
+                                     sheet_name='Cross_Mandelbrot_Results')
+                
+                print(f"   ✅ Cross-Mandelbrot analysis complete: {len(mandelbrot_results)} pairs analyzed")
+                print(f"   📊 Results saved to Cross_Mandelbrot_Analysis.xlsx")
+                
+                # Print top fractal relationships
+                if not mandelbrot_df.empty:
+                    top_fractal = mandelbrot_df.nlargest(3, 'Cross_Hurst')
+                    print(f"\n   🔔 TOP FRACTAL RELATIONSHIPS:")
+                    for _, row in top_fractal.iterrows():
+                        print(f"      {row['Pair']}: Cross-Hurst = {row['Cross_Hurst']:.3f}")
+            else:
+                print(f"   ❌ Cross-Mandelbrot analysis failed")
+        else:
+            print(f"   ⚠️  Insufficient data for Cross-Mandelbrot analysis")
+            
+    except Exception as e:
+        print(f"   ❌ Cross-Mandelbrot analysis error: {e}")
 
 def create_analysis_summary(analysis_results, results_mgr):
     """Create summary of all analyses"""
