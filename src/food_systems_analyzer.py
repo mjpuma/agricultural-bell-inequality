@@ -13,6 +13,7 @@ import seaborn as sns
 from datetime import datetime, timedelta
 from .bell_inequality_analyzer import BellInequalityAnalyzer
 from .preset_configurations import ASSET_GROUPS, CRISIS_PERIODS
+from .results_manager import ResultsManager
 
 # =================== FOOD SYSTEM ASSET DEFINITIONS ===================
 
