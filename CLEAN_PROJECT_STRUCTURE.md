@@ -9,7 +9,7 @@
 - `src/results_manager.py` - Results organization and management
 
 ### **Current Analysis Scripts**
-- `create_improved_correlation_analysis.py` - Latest improved analysis (ACTIVE)
+- `food_systems_analysis.py` - Main food systems Bell inequality analysis (ACTIVE)
 - `sam.ipynb` - Jupyter notebook for interactive analysis
 
 ### **Documentation & Guides**
@@ -43,7 +43,7 @@
 ## 🎯 **WHAT TO USE NOW**
 
 ### **For Analysis:**
-1. **`create_improved_correlation_analysis.py`** - Latest analysis script
+1. **`food_systems_analysis.py`** - Main analysis script
 2. **`results/` folder** - All organized outputs
 3. **`src/` modules** - Core analysis engines
 
