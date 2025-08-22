@@ -33,20 +33,23 @@ cd bell-inequality-analysis
 pip install -r requirements.txt
 ```
 
-### 2. Run Complete Food Systems Analysis
+### 2. Run Enhanced Food Systems Analysis
 ```bash
-# Run the main analysis (includes Bell inequality + Cross-Mandelbrot)
-python3 food_systems_analysis.py
+# Run the enhanced analysis with 6-panel crisis analysis and dual-axis overlays
+python3 food_systems_bell_analysis.py
 ```
 
-That's it! The analysis will:
-- ✅ Test data availability across multiple time periods
+That's it! The enhanced analysis will:
+- ✅ Test data availability across multiple time periods (up to 30+ years)
 - ✅ Analyze top food system pairs (ADM-SJM, CF-NTR, CORN-WEAT, etc.)
 - ✅ Run Bell inequality tests detecting quantum-like correlations
-- ✅ Perform Cross-Mandelbrot fractal analysis
-- ✅ Generate professional publication-ready figures
-- ✅ Create comprehensive Excel reports
-- ✅ Save all results in organized `results/` folder
+- ✅ Perform Cross-Mandelbrot fractal analysis with time series overlays
+- ✅ Generate **6-panel enhanced figures** with S1/correlation/cross-Hurst overlays
+- ✅ Create **crisis-specific enhanced analysis** for major disruption events
+- ✅ Provide **dual-axis visualization** showing both scaled and actual metric values
+- ✅ Include **interpretation guides** with threshold explanations
+- ✅ Create comprehensive Excel reports with detailed statistics
+- ✅ Save all results in organized `results/` folder with timestamps
 
 ### 3. View Results
 ```bash
@@ -59,11 +62,13 @@ ls results/
 
 ## 📊 **What You Get**
 
-### **Professional Visualizations**
-- Multi-panel correlation analysis (like your example format)
-- S1 Bell inequality plots with violation markers
-- Rolling volatility and correlation analysis
-- Cross-Mandelbrot fractal relationship heatmaps
+### **Enhanced Professional Visualizations**
+- **6-panel enhanced analysis**: S1/correlation overlays, cross-Hurst overlays, stock prices, standalone correlation, volatility, interpretation guides
+- **Crisis-specific enhanced figures**: 10-day rolling analysis for major disruption events (COVID-19, Ukraine War, 2008 Financial Crisis)
+- **Dual-axis overlays**: Scaled values for visual comparison + actual values for threshold interpretation
+- **Interactive interpretation guides**: Built-in threshold explanations (S1 >2.0 classical, >2.83 quantum, correlation >0.7 strong, cross-Hurst >0.5 persistent)
+- **Cross-Mandelbrot time series**: Real-time fractal relationship evolution
+- **Professional styling**: Large fonts, clear legends, publication-ready quality
 
 ### **Comprehensive Data**
 - Statistical correlation tables with p-values
@@ -101,7 +106,8 @@ ls results/
 
 ```
 📁 bell-inequality-analysis/
-├── 📄 food_systems_analysis.py          # 🔥 MAIN ANALYSIS SCRIPT
+├── 📄 food_systems_bell_analysis.py     # 🔥 ENHANCED MAIN ANALYSIS SCRIPT
+├── 📄 food_systems_analysis.py          # Original analysis script
 ├── 📄 sam.ipynb                         # Interactive Jupyter analysis
 ├── 📁 src/                              # Core analysis engines
 │   ├── 📄 bell_inequality_analyzer.py   # Bell inequality tests
@@ -110,7 +116,7 @@ ls results/
 │   ├── 📄 results_manager.py            # Results organization
 │   └── 📄 preset_configurations.py      # Asset groups & crisis periods
 ├── 📁 results/                          # 🎯 ALL ORGANIZED OUTPUTS
-│   ├── 📁 figures/                      # Publication-ready visualizations
+│   ├── 📁 figures/                      # 6-panel enhanced visualizations
 │   ├── 📁 excel_files/                  # Detailed analysis tables
 │   └── 📁 reports/                      # Comprehensive documentation
 ├── 📁 docs/                             # LaTeX methodology
