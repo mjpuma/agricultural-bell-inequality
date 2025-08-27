@@ -43,7 +43,7 @@ def run_enhanced_analysis():
     print("   4. Multi-sector analysis strategy")
     print("   5. Yahoo Finance focus")
     
-    results_mgr = ResultsManager()
+    results_mgr = ResultsManager("results/FINAL_CROSS_SECTOR_RESULTS")
     
     # Test extended data availability
     print("\n🔍 TESTING EXTENDED DATA AVAILABILITY")

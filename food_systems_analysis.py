@@ -30,7 +30,7 @@ def run_food_systems_analysis():
     print("🔬 Method: Bell inequality tests on food systems")
     
     # Initialize results manager
-    results_mgr = ResultsManager()
+    results_mgr = ResultsManager("results/FINAL_CROSS_SECTOR_RESULTS")
     
     # Test Yahoo Finance data availability
     print("\n🔍 TESTING DATA AVAILABILITY")

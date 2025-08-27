@@ -23,7 +23,7 @@ class ResultsManager:
         
         # Create organized subdirectories
         self.dirs = {
-            'excel': self.base_dir / 'excel_files',
+            'excel': self.base_dir / 'tables',
             'figures': self.base_dir / 'figures',
             'data': self.base_dir / 'data_exports',
             'reports': self.base_dir / 'reports',

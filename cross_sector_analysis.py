@@ -1,29 +1,31 @@
 #!/usr/bin/env python3
 """
-🌐 CROSS-SECTOR BELL INEQUALITY ANALYSIS
-==========================================
+🌐 CROSS-SECTOR BELL INEQUALITY ANALYSIS (2010-2025)
+=====================================================
 Comprehensive analysis of quantum correlations across different market sectors
 Focusing on cross-sector relationships and sector quantum bridges
+
+Time Period: January 2010 to July 2025 (15.5+ years of consistent data)
 
 Sector Matrix:
 - Technology: AAPL, MSFT, NVDA
 - Energy: XOM, CVX, COP  
 - Finance: JPM, BAC, GS
-- Agriculture: ADM, CF, CORN
+- Agriculture: ADM, CF, DE
 
 Cross-Sector Pairs:
 - Tech vs Energy: AAPL-XOM, MSFT-CVX, NVDA-COP
 - Tech vs Finance: AAPL-JPM, MSFT-BAC, NVDA-GS
-- Tech vs Agriculture: AAPL-ADM, MSFT-CF, NVDA-CORN
+- Tech vs Agriculture: AAPL-ADM, MSFT-CF, NVDA-DE
 - Energy vs Finance: XOM-JPM, CVX-BAC, COP-GS
-- Energy vs Agriculture: XOM-ADM, CVX-CF, COP-CORN
-- Finance vs Agriculture: JPM-ADM, BAC-CF, GS-CORN
+- Energy vs Agriculture: XOM-ADM, CVX-CF, COP-DE
+- Finance vs Agriculture: JPM-ADM, BAC-CF, GS-DE
 
-Crisis Periods:
+Crisis Periods (2010-2025):
 - COVID-19 (2020-2021): Cross-sector stress test
-- 2008 Financial Crisis: Finance sector contagion
-- 2022 Tech Correction: Tech sector impact
+- Tech Correction 2022: Tech sector impact
 - Ukraine War (2022): Energy/Agriculture stress
+- Inflation 2023: Rate hike and inflation impact
 """
 
 import pandas as pd
@@ -43,7 +45,7 @@ class CrossSectorAnalyzer:
     """Enhanced Bell inequality analyzer for cross-sector analysis"""
     
     def __init__(self):
-        self.results_mgr = ResultsManager("cross_sector_analysis")
+        self.results_mgr = ResultsManager("results/FINAL_CROSS_SECTOR_RESULTS")
         self.bell_analyzer = BellInequalityAnalyzer()
         self.mandelbrot_analyzer = CrossMandelbrotAnalyzer()
         
@@ -52,7 +54,7 @@ class CrossSectorAnalyzer:
             'Technology': ['AAPL', 'MSFT', 'NVDA'],
             'Energy': ['XOM', 'CVX', 'COP'],
             'Finance': ['JPM', 'BAC', 'GS'],
-            'Agriculture': ['ADM', 'CF', 'CORN']
+            'Agriculture': ['ADM', 'CF', 'DE']  # Replaced CORN with DE (Deere & Co) for longer history
         }
         
         # Cross-sector pairs for analysis
@@ -70,7 +72,7 @@ class CrossSectorAnalyzer:
             # Tech vs Agriculture
             ('AAPL', 'ADM', 'Tech vs Agriculture', 'Technology', 'Agriculture'),
             ('MSFT', 'CF', 'Tech vs Agriculture', 'Technology', 'Agriculture'),
-            ('NVDA', 'CORN', 'Tech vs Agriculture', 'Technology', 'Agriculture'),
+            ('NVDA', 'DE', 'Tech vs Agriculture', 'Technology', 'Agriculture'),
             
             # Energy vs Finance
             ('XOM', 'JPM', 'Energy vs Finance', 'Energy', 'Finance'),
@@ -80,25 +82,20 @@ class CrossSectorAnalyzer:
             # Energy vs Agriculture
             ('XOM', 'ADM', 'Energy vs Agriculture', 'Energy', 'Agriculture'),
             ('CVX', 'CF', 'Energy vs Agriculture', 'Energy', 'Agriculture'),
-            ('COP', 'CORN', 'Energy vs Agriculture', 'Energy', 'Agriculture'),
+            ('COP', 'DE', 'Energy vs Agriculture', 'Energy', 'Agriculture'),
             
             # Finance vs Agriculture
             ('JPM', 'ADM', 'Finance vs Agriculture', 'Finance', 'Agriculture'),
             ('BAC', 'CF', 'Finance vs Agriculture', 'Finance', 'Agriculture'),
-            ('GS', 'CORN', 'Finance vs Agriculture', 'Finance', 'Agriculture')
+            ('GS', 'DE', 'Finance vs Agriculture', 'Finance', 'Agriculture')
         ]
         
-        # Crisis periods for cross-sector analysis
+        # Crisis periods for cross-sector analysis (2010-2025)
         self.crisis_periods = {
             'COVID_19_Cross_Sector': {
                 'start': '2020-03-01',
                 'end': '2021-12-31',
                 'description': 'COVID-19 Cross-Sector Stress Test'
-            },
-            'Financial_Crisis_2008': {
-                'start': '2008-09-01',
-                'end': '2009-03-31',
-                'description': '2008 Financial Crisis Cross-Sector Contagion'
             },
             'Tech_Correction_2022': {
                 'start': '2022-01-01',
@@ -109,6 +106,11 @@ class CrossSectorAnalyzer:
                 'start': '2022-02-01',
                 'end': '2022-12-31',
                 'description': 'Ukraine War Energy/Agriculture Stress'
+            },
+            'Inflation_2023': {
+                'start': '2023-01-01',
+                'end': '2023-12-31',
+                'description': '2023 Inflation and Rate Hike Impact'
             }
         }
     
@@ -121,7 +123,7 @@ class CrossSectorAnalyzer:
             print(f"\n📊 {sector_name} Sector:")
             for stock in stocks:
                 try:
-                    data = yf.download(stock, period='max', progress=False)
+                    data = yf.download(stock, start='2010-01-01', end='2025-07-31', progress=False)
                     if len(data) > 0:
                         print(f"   ✅ {stock}: {len(data)} days ({data.index[0].date()} to {data.index[-1].date()})")
                     else:
@@ -137,8 +139,8 @@ class CrossSectorAnalyzer:
         print(f"   📊 {sector1} vs {sector2}")
         
         try:
-            # Download data with extended period
-            data = yf.download([asset1, asset2], period='max', progress=False)
+            # Download data for specific period (2010-2025)
+            data = yf.download([asset1, asset2], start='2010-01-01', end='2025-07-31', progress=False)
             if len(data) == 0:
                 print(f"   ❌ Error: No data available for {asset1}-{asset2}")
                 return None
@@ -157,8 +159,26 @@ class CrossSectorAnalyzer:
                 print(f"   ❌ Error: Missing data for {asset1} or {asset2}")
                 return None
             
+            # Get the actual overlap period where both assets have data
+            asset1_data = data[('Close', asset1)].dropna()
+            asset2_data = data[('Close', asset2)].dropna()
+            
+            overlap_start = max(asset1_data.index[0], asset2_data.index[0])
+            overlap_end = min(asset1_data.index[-1], asset2_data.index[-1])
+            
+            print(f"   📊 Data overlap: {overlap_start.date()} to {overlap_end.date()}")
+            print(f"   📊 Overlap days: {(overlap_end - overlap_start).days}")
+            
+            # Use only the overlap period for analysis
+            overlap_data = data.loc[overlap_start:overlap_end]
+            overlap_returns = overlap_data.pct_change().dropna()
+            
+            if len(overlap_returns) < 100:
+                print(f"   ❌ Error: Insufficient overlap data ({len(overlap_returns)} days)")
+                return None
+            
             # Run Bell inequality analysis
-            s1_values, s1_violations = self.calculate_s1_bell_inequality(returns[('Close', asset1)], returns[('Close', asset2)], 20)
+            s1_values, s1_violations = self.calculate_s1_bell_inequality(overlap_returns[('Close', asset1)], overlap_returns[('Close', asset2)], 20)
             bell_results = {
                 's1_values': s1_values,
                 's1_violations': s1_violations
@@ -171,29 +191,29 @@ class CrossSectorAnalyzer:
             # Run Cross-Mandelbrot analysis
             try:
                 mandelbrot_results = self.mandelbrot_analyzer.analyze_cross_mandelbrot_comprehensive(
-                    {asset1: returns[('Close', asset1)], asset2: returns[('Close', asset2)]}
+                    {asset1: overlap_returns[('Close', asset1)], asset2: overlap_returns[('Close', asset2)]}
                 )
             except Exception as e:
                 print(f"   ⚠️  Mandelbrot analysis failed: {e}")
                 mandelbrot_results = None
             
             # Calculate additional metrics
-            rolling_corr = returns[('Close', asset1)].rolling(20).corr(returns[('Close', asset2)])
-            rolling_vol1 = returns[('Close', asset1)].rolling(20).std() * np.sqrt(252)
-            rolling_vol2 = returns[('Close', asset2)].rolling(20).std() * np.sqrt(252)
+            rolling_corr = overlap_returns[('Close', asset1)].rolling(20).corr(overlap_returns[('Close', asset2)])
+            rolling_vol1 = overlap_returns[('Close', asset1)].rolling(20).std() * np.sqrt(252)
+            rolling_vol2 = overlap_returns[('Close', asset2)].rolling(20).std() * np.sqrt(252)
             
             # Create enhanced visualization
             self.create_cross_sector_figure(
-                asset1, asset2, data, returns, rolling_corr, 
+                asset1, asset2, overlap_data, overlap_returns, rolling_corr, 
                 rolling_vol1, rolling_vol2, bell_results, mandelbrot_results, 
                 pair_name, sector1, sector2
             )
             
             # Create crisis analysis
-            self.create_cross_sector_crisis_analysis(asset1, asset2, data, returns, pair_name, sector1, sector2)
+            self.create_cross_sector_crisis_analysis(asset1, asset2, overlap_data, overlap_returns, pair_name, sector1, sector2)
             
             # Save correlation table
-            self.create_cross_sector_correlation_table(returns[('Close', asset1)], returns[('Close', asset2)], 
+            self.create_cross_sector_correlation_table(overlap_returns[('Close', asset1)], overlap_returns[('Close', asset2)], 
                                                      rolling_corr, bell_results, mandelbrot_results, pair_name)
             
             # Calculate violation rate
@@ -202,7 +222,7 @@ class CrossSectorAnalyzer:
             violation_rate = (violations.sum() / len(violations)) * 100
             
             print(f"   ✅ Analysis complete: {violation_rate:.1f}% Bell violations")
-            print(f"   📊 Data period: {data.index[0].date()} to {data.index[-1].date()}")
+            print(f"   📊 Analysis period: {overlap_start.date()} to {overlap_end.date()}")
             print()
             
             return {
@@ -212,7 +232,7 @@ class CrossSectorAnalyzer:
                 'sector1': sector1,
                 'sector2': sector2,
                 'violation_rate': violation_rate,
-                'data_period': f"{data.index[0].date()} to {data.index[-1].date()}",
+                'data_period': f"{overlap_start.date()} to {overlap_end.date()}",
                 'bell_results': bell_results,
                 'mandelbrot_results': mandelbrot_results
             }
@@ -488,7 +508,7 @@ class CrossSectorAnalyzer:
             print(f"   📊 Correlation data: {results_data}")
     
     def calculate_s1_bell_inequality(self, returns1, returns2, window):
-        """Calculate S1 Bell inequality values"""
+        """Calculate S1 Bell inequality values with proper NaN handling"""
         
         try:
             s1_values = []
@@ -499,8 +519,23 @@ class CrossSectorAnalyzer:
                 r1_window = returns1.iloc[i-window:i]
                 r2_window = returns2.iloc[i-window:i]
                 
+                # Check if we have enough non-NaN data in the window
+                r1_valid = r1_window.dropna()
+                r2_valid = r2_window.dropna()
+                
+                if len(r1_valid) < 10 or len(r2_valid) < 10:
+                    s1_values.append(np.nan)
+                    violations.append(False)
+                    continue
+                
                 # Calculate correlations at different lags (simplified Bell inequality)
                 corr_0 = r1_window.corr(r2_window)  # Simultaneous
+                
+                # Check for NaN correlation
+                if pd.isna(corr_0):
+                    s1_values.append(np.nan)
+                    violations.append(False)
+                    continue
                 
                 if len(r1_window) > 5:
                     corr_1 = r1_window[:-1].corr(r2_window[1:])  # 1-day lag
@@ -508,6 +543,12 @@ class CrossSectorAnalyzer:
                 else:
                     corr_1 = corr_0
                     corr_2 = corr_0
+                
+                # Check for NaN correlations
+                if pd.isna(corr_1) or pd.isna(corr_2):
+                    s1_values.append(np.nan)
+                    violations.append(False)
+                    continue
                 
                 # Simplified S1 calculation (approximation)
                 s1 = abs(corr_0) + abs(corr_1) + abs(corr_2) - abs(corr_0 * corr_1)
@@ -564,7 +605,7 @@ class CrossSectorAnalyzer:
         
         print()
         print("🎉 CROSS-SECTOR ANALYSIS COMPLETE!")
-        print("📁 Results saved in: results/cross_sector_analysis/")
+        print("📁 Results saved in: results/FINAL_CROSS_SECTOR_RESULTS/cross_sector_analysis/")
         
         return all_results
 
