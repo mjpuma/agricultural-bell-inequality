@@ -1,0 +1,56 @@
+ticker,name,sector,exposure,market_cap_approx
+DE,Deere & Company,Equipment,Primary,110B
+CTVA,Corteva Inc,Seeds/Crop Protection,Primary,53B
+ADM,Archer-Daniels-Midland,Trading/Processing,Primary,38B
+NTR,Nutrien Ltd,Fertilizers,Primary,28B
+CF,CF Industries,Fertilizers,Primary,15B
+BG,Bunge Limited,Trading/Processing,Primary,14B
+MOS,Mosaic Company,Fertilizers,Primary,12B
+AGCO,AGCO Corporation,Equipment,Primary,9B
+FMC,FMC Corporation,Crop Protection,Primary,6B
+TSN,Tyson Foods,Food Processing,Primary,20B
+LW,Lamb Weston Holdings,Food Processing,Primary,12B
+TTC,Toro Company,Equipment,Secondary,8B
+CNH,CNH Industrial,Equipment,Primary,12B
+SYY,Sysco Corporation,Food Distribution,Secondary,40B
+AVD,American Vanguard Corp,Crop Protection,Primary,117M
+IPI,Intrepid Potash,Fertilizers,Primary,400M
+CALM,Cal-Maine Foods,Food Processing,Primary,3B
+SAFM,Sanderson Farms,Food Processing,Primary,4B
+STKL,SunOpta Inc,Food Processing,Primary,400M
+ARTW,Arts-Way Manufacturing,Equipment,Primary,50M
+ALG,Alamo Group,Equipment,Primary,1.5B
+TITN,Titan Machinery,Equipment,Primary,300M
+TSCO,Tractor Supply Company,Retail,Secondary,27B
+ICL,ICL Group,Fertilizers,Primary,6B
+CMP,Compass Minerals,Fertilizers,Secondary,800M
+SMG,Scotts Miracle-Gro,Fertilizers,Primary,3B
+UAN,CVR Partners,Fertilizers,Primary,1B
+BASFY,BASF SE (ADR),Chemicals,Secondary,42B
+UL,Unilever (ADR),Food Processing,Tertiary,140B
+NSRGY,Nestle (ADR),Food Processing,Tertiary,320B
+HRL,Hormel Foods,Food Processing,Primary,25B
+CPB,Campbell Soup,Food Processing,Primary,14B
+GIS,General Mills,Food Processing,Primary,40B
+K,Kellogg Company,Food Processing,Primary,20B
+CAG,ConAgra Brands,Food Processing,Primary,17B
+HSY,Hershey Company,Food Processing,Primary,35B
+SJM,J.M. Smucker,Food Processing,Primary,12B
+MDLZ,Mondelez International,Food Processing,Primary,85B
+UNFI,United Natural Foods,Food Distribution,Secondary,1B
+KR,Kroger Company,Retail,Tertiary,40B
+WMT,Walmart Inc,Retail,Tertiary,600B
+COST,Costco Wholesale,Retail,Tertiary,400B
+LAND,Gladstone Land Corporation,Farmland REIT,Primary,400M
+FPI,Farmland Partners Inc,Farmland REIT,Primary,300M
+CVX,Chevron Corporation,Energy,Tertiary,350B
+XOM,Exxon Mobil,Energy,Tertiary,500B
+COP,ConocoPhillips,Energy,Tertiary,140B
+UNP,Union Pacific,Transportation,Secondary,140B
+CNI,Canadian National Railway,Transportation,Secondary,80B
+NSC,Norfolk Southern,Transportation,Secondary,55B
+CSX,CSX Corporation,Transportation,Secondary,70B
+DOW,Dow Inc,Chemicals,Secondary,35B
+LYB,LyondellBasell,Chemicals,Secondary,25B
+BYND,Beyond Meat,Alternative Proteins,Primary,500M
+OTLY,Oatly Group,Alternative Proteins,Primary,800M
