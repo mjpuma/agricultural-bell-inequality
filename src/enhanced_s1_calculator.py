@@ -66,13 +66,8 @@ class EnhancedS1Calculator:
         self.threshold_value = threshold_value
         self.threshold_quantile = threshold_quantile
         
-        print(f"🔬 Enhanced S1 Calculator Initialized")
-        print(f"   Window size: {window_size}")
-        print(f"   Threshold method: {threshold_method}")
-        if threshold_method == 'absolute':
-            print(f"   Threshold value: {threshold_value} (absolute return)")
-        else:
-            print(f"   Threshold quantile: {threshold_quantile}")
+        # Reduced verbosity - only print if explicitly requested
+        self.verbose = False
     
     def calculate_daily_returns(self, prices: pd.DataFrame) -> pd.DataFrame:
         """
@@ -100,7 +95,8 @@ class EnhancedS1Calculator:
         returns = returns.replace([np.inf, -np.inf], np.nan)
         returns = returns.dropna()
         
-        print(f"✅ Daily returns calculated: {returns.shape[0]} observations, {returns.shape[1]} assets")
+        if self.verbose:
+            print(f"✅ Daily returns calculated: {returns.shape[0]} observations, {returns.shape[1]} assets")
         
         return returns
     
@@ -147,7 +143,8 @@ class EnhancedS1Calculator:
         # Convert to DataFrame for easier handling
         indicators_df = pd.DataFrame(indicators, index=returns.index)
         
-        print(f"✅ Binary indicators computed for {len(returns.columns)} assets")
+        if self.verbose:
+            print(f"✅ Binary indicators computed for {len(returns.columns)} assets")
         
         return {
             'indicators': indicators_df,
@@ -178,7 +175,8 @@ class EnhancedS1Calculator:
         signs[returns >= 0] = 1
         signs[returns < 0] = -1
         
-        print(f"✅ Sign outcomes calculated for {signs.shape[0]} observations, {signs.shape[1]} assets")
+        if self.verbose:
+            print(f"✅ Sign outcomes calculated for {signs.shape[0]} observations, {signs.shape[1]} assets")
         
         return signs
     
@@ -377,7 +375,8 @@ class EnhancedS1Calculator:
         if len(returns) < window_size:
             raise ValueError(f"Insufficient data: {len(returns)} < {window_size}")
         
-        print(f"🔍 Analyzing pair: {asset_a} - {asset_b}")
+        if self.verbose:
+            print(f"🔍 Analyzing pair: {asset_a} - {asset_b}")
         
         # Storage for rolling window results
         s1_time_series = []
@@ -440,7 +439,8 @@ class EnhancedS1Calculator:
             }
         }
         
-        print(f"✅ Analysis complete: {violation_results['violations']}/{violation_results['total_values']} violations ({violation_results['violation_rate']:.1f}%)")
+        if self.verbose:
+            print(f"✅ Analysis complete: {violation_results['violations']}/{violation_results['total_values']} violations ({violation_results['violation_rate']:.1f}%)")
         
         return results
     
@@ -460,7 +460,8 @@ class EnhancedS1Calculator:
         --------
         Dict : Results for all asset pairs
         """
-        print(f"🔍 Batch analyzing {len(asset_pairs)} asset pairs...")
+        if self.verbose:
+            print(f"🔍 Batch analyzing {len(asset_pairs)} asset pairs...")
         
         batch_results = {}
         total_violations = 0
@@ -476,7 +477,8 @@ class EnhancedS1Calculator:
                 total_calculations += pair_results['violation_results']['total_values']
                 
             except Exception as e:
-                print(f"⚠️  Error analyzing {asset_a}-{asset_b}: {e}")
+                if self.verbose:
+                    print(f"⚠️  Error analyzing {asset_a}-{asset_b}: {e}")
                 continue
         
         # Calculate overall statistics
@@ -490,9 +492,10 @@ class EnhancedS1Calculator:
             'overall_violation_rate': overall_violation_rate
         }
         
-        print(f"✅ Batch analysis complete:")
-        print(f"   Pairs analyzed: {summary['successful_pairs']}/{summary['total_pairs']}")
-        print(f"   Total violations: {total_violations:,}/{total_calculations:,} ({overall_violation_rate:.2f}%)")
+        if self.verbose:
+            print(f"✅ Batch analysis complete:")
+            print(f"   Pairs analyzed: {summary['successful_pairs']}/{summary['total_pairs']}")
+            print(f"   Total violations: {total_violations:,}/{total_calculations:,} ({overall_violation_rate:.2f}%)")
         
         return {
             'pair_results': batch_results,
