@@ -209,13 +209,13 @@ class CAPMBetaBreakdownDemo:
         s1_aligned = s1_series.loc[common_dates]
         beta_aligned = beta_df.loc[common_dates]
         
-        # Create figure
-        fig, axes = plt.subplots(3, 1, figsize=(16, 12))
-        fig.suptitle('CAPM β Breakdown During S1 Violations\nXOM-JPM Pair (2010-2025)', 
+        # Create figure with 4 panels
+        fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+        fig.suptitle('CAPM β Breakdown During S1 Violations: Statistical Evidence\nXOM-JPM Pair (2010-2025)', 
                      fontsize=16, fontweight='bold')
         
         # Panel 1: S1 Values with Regime Thresholds
-        ax1 = axes[0]
+        ax1 = axes[0, 0]
         ax1.plot(s1_aligned.index, s1_aligned.values, 'b-', alpha=0.7, linewidth=1)
         ax1.axhline(y=2.0, color='orange', linestyle='--', alpha=0.8, label='Classical Independence Bound (S1=2)')
         ax1.axhline(y=2.83, color='red', linestyle='--', alpha=0.8, label='Quantum Bound (S1=2.83)')
@@ -230,53 +230,119 @@ class CAPMBetaBreakdownDemo:
         ax1.legend(loc='upper right')
         ax1.grid(True, alpha=0.3)
         
-        # Panel 2: XOM β with Confidence Intervals
-        ax2 = axes[1]
-        xom_beta = beta_aligned['XOM_Beta']
-        xom_se = beta_aligned['XOM_Beta_SE']
+        # Panel 2: Box plots showing β distribution by S1 regime
+        ax2 = axes[0, 1]
         
-        # Plot β with confidence intervals
-        ax2.plot(xom_beta.index, xom_beta.values, 'b-', alpha=0.7, linewidth=1, label='XOM β')
-        ax2.fill_between(xom_beta.index, 
-                        xom_beta.values - 2*xom_se.values, 
-                        xom_beta.values + 2*xom_se.values, 
-                        alpha=0.3, color='blue', label='95% Confidence Interval')
+        # Define S1 regimes
+        classical_regime = s1_aligned < 2
+        transitional_regime = (s1_aligned >= 2) & (s1_aligned < 2.83)
+        strong_interdependence = s1_aligned >= 2.83
+        
+        # Prepare data for box plots
+        xom_classical = beta_aligned.loc[classical_regime, 'XOM_Beta'].dropna()
+        xom_transitional = beta_aligned.loc[transitional_regime, 'XOM_Beta'].dropna()
+        xom_strong = beta_aligned.loc[strong_interdependence, 'XOM_Beta'].dropna()
+        
+        jpm_classical = beta_aligned.loc[classical_regime, 'JPM_Beta'].dropna()
+        jpm_transitional = beta_aligned.loc[transitional_regime, 'JPM_Beta'].dropna()
+        jpm_strong = beta_aligned.loc[strong_interdependence, 'JPM_Beta'].dropna()
+        
+        # Create box plots
+        data_xom = [xom_classical, xom_transitional, xom_strong]
+        data_jpm = [jpm_classical, jpm_transitional, jpm_strong]
+        
+        bp1 = ax2.boxplot(data_xom, positions=[1, 2, 3], patch_artist=True, 
+                         labels=['Classical\n(S1<2)', 'Transitional\n(2≤S1<2.83)', 'Strong\n(S1≥2.83)'])
+        bp2 = ax2.boxplot(data_jpm, positions=[5, 6, 7], patch_artist=True,
+                         labels=['Classical\n(S1<2)', 'Transitional\n(2≤S1<2.83)', 'Strong\n(S1≥2.83)'])
+        
+        # Color the boxes
+        colors = ['lightgreen', 'yellow', 'lightcoral']
+        for patch in bp1['boxes']:
+            patch.set_facecolor(colors[0])
+        for patch in bp2['boxes']:
+            patch.set_facecolor(colors[0])
+        
+        ax2.set_ylabel('β Values', fontsize=12)
+        ax2.set_title('β Distribution by S1 Regime\n(Box plots show median, quartiles, and outliers)', fontsize=14, fontweight='bold')
+        ax2.grid(True, alpha=0.3)
+        
+        # Add text annotations with statistics
+        ax2.text(0.02, 0.98, f'XOM β Std:\nClassical: {xom_classical.std():.3f}\nStrong: {xom_strong.std():.3f}', 
+                transform=ax2.transAxes, verticalalignment='top', fontsize=10,
+                bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+        
+        # Panel 3: Confidence interval width comparison
+        ax3 = axes[1, 0]
+        
+        # Calculate confidence interval widths
+        ci_width_xom = 2 * beta_aligned['XOM_Beta_SE']  # 95% CI width
+        ci_width_jpm = 2 * beta_aligned['JPM_Beta_SE']
+        
+        # Plot CI widths over time
+        ax3.plot(ci_width_xom.index, ci_width_xom.values, 'b-', alpha=0.7, linewidth=1, label='XOM β CI Width')
+        ax3.plot(ci_width_jpm.index, ci_width_jpm.values, 'g-', alpha=0.7, linewidth=1, label='JPM β CI Width')
         
         # Highlight S1 violation periods
         s1_violations = s1_aligned > 2
         violation_dates = s1_aligned[s1_violations].index
-        violation_betas = xom_beta.loc[violation_dates]
+        violation_ci_xom = ci_width_xom.loc[violation_dates]
+        violation_ci_jpm = ci_width_jpm.loc[violation_dates]
         
-        ax2.scatter(violation_dates, violation_betas, 
-                   color='red', s=20, alpha=0.7, label='S1 > 2 (Independence Violation)')
+        ax3.scatter(violation_dates, violation_ci_xom, color='red', s=20, alpha=0.7, label='S1 > 2 (XOM)')
+        ax3.scatter(violation_dates, violation_ci_jpm, color='darkred', s=20, alpha=0.7, label='S1 > 2 (JPM)')
         
-        ax2.set_ylabel('XOM β (CAPM)', fontsize=12)
-        ax2.set_title('XOM Rolling β with S1 Violation Periods Highlighted', fontsize=14, fontweight='bold')
-        ax2.legend(loc='upper right')
-        ax2.grid(True, alpha=0.3)
-        
-        # Panel 3: JPM β with Confidence Intervals
-        ax3 = axes[2]
-        jpm_beta = beta_aligned['JPM_Beta']
-        jpm_se = beta_aligned['JPM_Beta_SE']
-        
-        # Plot β with confidence intervals
-        ax3.plot(jpm_beta.index, jpm_beta.values, 'g-', alpha=0.7, linewidth=1, label='JPM β')
-        ax3.fill_between(jpm_beta.index, 
-                        jpm_beta.values - 2*jpm_se.values, 
-                        jpm_beta.values + 2*jpm_se.values, 
-                        alpha=0.3, color='green', label='95% Confidence Interval')
-        
-        # Highlight S1 violation periods
-        violation_betas_jpm = jpm_beta.loc[violation_dates]
-        ax3.scatter(violation_dates, violation_betas_jpm, 
-                   color='red', s=20, alpha=0.7, label='S1 > 2 (Independence Violation)')
-        
-        ax3.set_ylabel('JPM β (CAPM)', fontsize=12)
+        ax3.set_ylabel('95% Confidence Interval Width', fontsize=12)
         ax3.set_xlabel('Date', fontsize=12)
-        ax3.set_title('JPM Rolling β with S1 Violation Periods Highlighted', fontsize=14, fontweight='bold')
+        ax3.set_title('β Uncertainty During S1 Violations\n(Wider intervals = less reliable β estimates)', fontsize=14, fontweight='bold')
         ax3.legend(loc='upper right')
         ax3.grid(True, alpha=0.3)
+        
+        # Panel 4: Statistical comparison - β volatility by regime
+        ax4 = axes[1, 1]
+        
+        # Calculate rolling β volatility (standard deviation over 20-day windows)
+        window = 20
+        xom_volatility = []
+        jpm_volatility = []
+        vol_dates = []
+        
+        for i in range(window, len(beta_aligned)):
+            xom_window = beta_aligned['XOM_Beta'].iloc[i-window:i].dropna()
+            jpm_window = beta_aligned['JPM_Beta'].iloc[i-window:i].dropna()
+            
+            if len(xom_window) > 10 and len(jpm_window) > 10:
+                xom_volatility.append(xom_window.std())
+                jpm_volatility.append(jpm_window.std())
+                vol_dates.append(beta_aligned.index[i])
+        
+        xom_vol_series = pd.Series(xom_volatility, index=vol_dates)
+        jpm_vol_series = pd.Series(jpm_volatility, index=vol_dates)
+        
+        # Align with S1 data
+        common_vol_dates = xom_vol_series.index.intersection(s1_aligned.index)
+        xom_vol_aligned = xom_vol_series.loc[common_vol_dates]
+        jpm_vol_aligned = jpm_vol_series.loc[common_vol_dates]
+        s1_vol_aligned = s1_aligned.loc[common_vol_dates]
+        
+        # Plot volatility
+        ax4.plot(xom_vol_aligned.index, xom_vol_aligned.values, 'b-', alpha=0.7, linewidth=1, label='XOM β Volatility')
+        ax4.plot(jpm_vol_aligned.index, jpm_vol_aligned.values, 'g-', alpha=0.7, linewidth=1, label='JPM β Volatility')
+        
+        # Highlight S1 violation periods
+        vol_violations = s1_vol_aligned > 2
+        vol_violation_dates = s1_vol_aligned[vol_violations].index
+        vol_violation_xom = xom_vol_aligned.loc[vol_violation_dates]
+        vol_violation_jpm = jpm_vol_aligned.loc[vol_violation_dates]
+        
+        ax4.scatter(vol_violation_dates, vol_violation_xom, color='red', s=20, alpha=0.7, label='S1 > 2 (XOM)')
+        ax4.scatter(vol_violation_dates, vol_violation_jpm, color='darkred', s=20, alpha=0.7, label='S1 > 2 (JPM)')
+        
+        ax4.set_ylabel('β Volatility (20-day rolling std)', fontsize=12)
+        ax4.set_xlabel('Date', fontsize=12)
+        ax4.set_title('β Stability During S1 Violations\n(Higher volatility = less stable β estimates)', fontsize=14, fontweight='bold')
+        ax4.legend(loc='upper right')
+        ax4.grid(True, alpha=0.3)
         
         plt.tight_layout()
         
@@ -324,18 +390,35 @@ class CAPMBetaBreakdownDemo:
                     'Periods': regime_mask.sum()
                 }
         
+        # Perform statistical tests
+        from scipy import stats
+        
+        # Get β data for statistical tests
+        xom_classical = beta_aligned.loc[classical_regime, 'XOM_Beta'].dropna()
+        xom_strong = beta_aligned.loc[strong_interdependence, 'XOM_Beta'].dropna()
+        jpm_classical = beta_aligned.loc[classical_regime, 'JPM_Beta'].dropna()
+        jpm_strong = beta_aligned.loc[strong_interdependence, 'JPM_Beta'].dropna()
+        
+        # T-tests comparing classical vs strong interdependence
+        xom_ttest = stats.ttest_ind(xom_classical, xom_strong)
+        jpm_ttest = stats.ttest_ind(jpm_classical, jpm_strong)
+        
+        # F-tests for variance comparison
+        xom_ftest = stats.f_oneway(xom_classical, xom_strong)
+        jpm_ftest = stats.f_oneway(jpm_classical, jpm_strong)
+        
         # Create summary table
         summary_data = []
-        for regime, stats in results.items():
+        for regime, stats_dict in results.items():
             summary_data.append([
                 regime,
-                f"{stats['XOM_Beta_Mean']:.3f}",
-                f"{stats['XOM_Beta_Std']:.3f}",
-                f"{stats['XOM_Beta_SE_Mean']:.3f}",
-                f"{stats['JPM_Beta_Mean']:.3f}",
-                f"{stats['JPM_Beta_Std']:.3f}",
-                f"{stats['JPM_Beta_SE_Mean']:.3f}",
-                stats['Periods']
+                f"{stats_dict['XOM_Beta_Mean']:.3f}",
+                f"{stats_dict['XOM_Beta_Std']:.3f}",
+                f"{stats_dict['XOM_Beta_SE_Mean']:.3f}",
+                f"{stats_dict['JPM_Beta_Mean']:.3f}",
+                f"{stats_dict['JPM_Beta_Std']:.3f}",
+                f"{stats_dict['JPM_Beta_SE_Mean']:.3f}",
+                stats_dict['Periods']
             ])
         
         summary_df = pd.DataFrame(summary_data, columns=[
@@ -352,6 +435,34 @@ class CAPMBetaBreakdownDemo:
         print(f"\n📊 CAPM β BREAKDOWN SUMMARY:")
         print("=" * 50)
         print(summary_df.to_string(index=False))
+        
+        # Print statistical tests
+        print(f"\n🔬 STATISTICAL TESTS:")
+        print("=" * 50)
+        print(f"XOM β - Classical vs Strong Interdependence:")
+        print(f"  T-test: t = {xom_ttest.statistic:.3f}, p = {xom_ttest.pvalue:.6f}")
+        print(f"  F-test: F = {xom_ftest.statistic:.3f}, p = {xom_ftest.pvalue:.6f}")
+        print(f"  Mean difference: {xom_strong.mean() - xom_classical.mean():.3f}")
+        print(f"  Std difference: {xom_strong.std() - xom_classical.std():.3f}")
+        
+        print(f"\nJPM β - Classical vs Strong Interdependence:")
+        print(f"  T-test: t = {jpm_ttest.statistic:.3f}, p = {jpm_ttest.pvalue:.6f}")
+        print(f"  F-test: F = {jpm_ftest.statistic:.3f}, p = {jpm_ftest.pvalue:.6f}")
+        print(f"  Mean difference: {jpm_strong.mean() - jpm_classical.mean():.3f}")
+        print(f"  Std difference: {jpm_strong.std() - jpm_classical.std():.3f}")
+        
+        # Interpretation
+        print(f"\n📈 INTERPRETATION:")
+        print("=" * 50)
+        if xom_ttest.pvalue < 0.05:
+            print(f"✅ XOM β significantly different between regimes (p < 0.05)")
+        else:
+            print(f"❌ XOM β not significantly different between regimes (p ≥ 0.05)")
+            
+        if jpm_ttest.pvalue < 0.05:
+            print(f"✅ JPM β significantly different between regimes (p < 0.05)")
+        else:
+            print(f"❌ JPM β not significantly different between regimes (p ≥ 0.05)")
         
         return summary_df
     
