@@ -115,8 +115,8 @@ class TestCrossImplementationValidator(unittest.TestCase):
         report = self.validator.cross_validate_methods(self.test_prices, self.test_pairs)
         
         self.assertIsInstance(report, ComparisonReport)
-        self.assertEqual(report.implementation_a, "S1 Conditional")
-        self.assertEqual(report.implementation_b, "CHSH Sliding Window")
+        self.assertEqual(report.implementation_a, "Enhanced S1 Conditional")
+        self.assertEqual(report.implementation_b, "Sliding Window S1")
         self.assertIsInstance(report.identical_results, bool)
         self.assertGreaterEqual(report.max_difference, 0)
         self.assertGreaterEqual(report.correlation, -1)

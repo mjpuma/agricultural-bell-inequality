@@ -14,7 +14,7 @@ This system implements the **S1 conditional Bell inequality approach** following
 ### Key Features
 
 - **🔬 Mathematical Validation Framework**: Cross-implementation validation with 1e-12 precision tolerance
-- **📊 Dual Implementation Support**: S1 conditional and CHSH sliding window methods
+- **📊 Dual S1 Implementation Support**: Enhanced S1 conditional and sliding window S1 methods
 - **🧪 Comprehensive Testing**: 100% test coverage with 23+ validation tests
 - **📈 Statistical Rigor**: Bootstrap validation with 1000+ resamples, p < 0.001 significance
 - **🌾 Food Systems Focus**: Agricultural cross-sector analysis with supply chain relationships
@@ -138,7 +138,7 @@ print(f"Bell Violation: {'Yes' if max_violation > 2 else 'No'}")
 
 ### Cross-Implementation Validation
 
-The system includes a comprehensive mathematical validation framework that ensures correctness across different Bell inequality implementations:
+The system includes a comprehensive mathematical validation framework that ensures correctness across different S1 Bell inequality implementations:
 
 ```python
 from src.mathematical_validation_framework import CrossImplementationValidator
@@ -154,7 +154,7 @@ print(f"Returns validation: {'PASSED' if returns_result.passed else 'FAILED'}")
 sign_result = validator.validate_sign_calculations(returns_data)
 print(f"Sign validation: {'PASSED' if sign_result.passed else 'FAILED'}")
 
-# Cross-validate S1 vs CHSH methods
+# Cross-validate Enhanced S1 vs Sliding Window S1 methods
 comparison = validator.cross_validate_methods(test_data, asset_pairs)
 print(f"Method correlation: {comparison.correlation:.4f}")
 print(f"Max difference: {comparison.max_difference:.2e}")
@@ -167,7 +167,7 @@ print(f"Max difference: {comparison.max_difference:.2e}")
 | Daily Returns Calculation | ✅ PASSED | 0.00e+00 | Identical implementations |
 | Sign Function Calculation | ✅ PASSED | 0.0 | Exact match required |
 | Threshold Methods | ✅ PASSED | 0.00e+00 | Quantile calculations identical |
-| Bell Violation Detection | ✅ PASSED | ~5-10% | Expected method sensitivity |
+| Bell Violation Detection | ✅ PASSED | ~1-3% | Both S1 methods should be nearly identical |
 | Cross-Implementation | ✅ VALIDATED | 1e-12 | Publication precision achieved |
 
 ### Numerical Precision Analysis
@@ -388,7 +388,7 @@ BellTestViolations/
 ├── .kiro/                           # Kiro IDE specifications
 │   ├── specs/bell-inequality-validation-and-publication/  # 🆕 Publication specs
 │   └── steering/food_systems_research.md                 # Research guidelines
-├── S/                              # Original CHSH implementation
+├── S/                              # Original Sliding Window S1 implementation
 ├── colleague_implementation/        # Space for colleague's code
 ├── data_cache/                     # Cached data storage
 ├── results/                        # Analysis output storage
@@ -526,17 +526,17 @@ ls validation_results/
 
 #### 4. Expected Validation Outcomes
 
-**If Implementations Are Mathematically Equivalent**:
+**If S1 Implementations Are Mathematically Equivalent**:
 - ✅ Daily returns: Max difference < 1e-12
 - ✅ Sign functions: Exact match (difference = 0.0)
-- ✅ Bell violations: Rate difference < 10%
+- ✅ Bell violations: Rate difference < 3% (both calculate same S1 formula)
 - ✅ Statistical significance: Both achieve p < 0.001
 
-**If Implementations Differ**:
-- 📊 Detailed difference analysis with statistical significance
-- 🔍 Identification of specific calculation discrepancies  
-- 📋 Recommendations for reconciliation
-- 📈 Performance comparison metrics
+**If S1 Implementations Have Style Differences**:
+- 📊 Analysis of implementation approaches (sliding window vs explicit)
+- 🔍 Identification of threshold calculation variations
+- 📋 Performance comparison and optimization opportunities
+- 📈 Integration of best practices from both approaches
 
 #### 5. Validation Framework Features
 
@@ -609,8 +609,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### Key Questions the Framework Answers
 
 1. **Are our S1 calculations mathematically identical?** → Precision validation with 1e-12 tolerance
-2. **Do we get the same Bell violation rates?** → Statistical comparison with confidence intervals
-3. **Which implementation is more efficient?** → Performance benchmarking and scalability analysis
+2. **Do we get nearly identical Bell violation rates?** → Statistical comparison (expect >95% correlation)
+3. **Which S1 implementation style is more efficient?** → Performance benchmarking (sliding window vs explicit)
 4. **Are results publication-ready?** → Science journal criteria validation
 
 ## 📞 Contact

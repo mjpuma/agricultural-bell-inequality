@@ -8,7 +8,7 @@ analysis framework for Bell inequality methods. It shows how to validate mathema
 correctness, test numerical precision, and generate publication-ready validation reports.
 
 Key Demonstrations:
-- Cross-validation between S1 and CHSH implementations
+- Cross-validation between different S1 implementations implementations
 - Numerical precision analysis with 1e-12 tolerance
 - Statistical significance testing with bootstrap validation
 - Comprehensive validation reporting for Science journal standards

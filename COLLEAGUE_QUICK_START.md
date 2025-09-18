@@ -16,7 +16,7 @@ python examples/mathematical_validation_demo.py
 ```
 
 **Expected Output**: Complete validation framework demonstration with:
-- ✅ Cross-implementation validation (S1 vs CHSH methods)
+- ✅ Cross-implementation validation (Enhanced S1 vs Sliding Window S1 methods)
 - ✅ Numerical precision analysis (1e-12 tolerance)
 - ✅ Statistical significance testing (p < 0.001)
 - ✅ Food systems validation (agricultural pairs)

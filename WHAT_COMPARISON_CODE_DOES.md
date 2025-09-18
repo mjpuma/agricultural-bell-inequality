@@ -154,7 +154,7 @@ python examples/mathematical_validation_demo.py
 ```
 
 **2. See validation in action:**
-- Watch it validate our S1 vs simplified CHSH methods
+- Watch it validate our S1 vs simplified Sliding Window S1 methods
 - See precision analysis (1e-12 tolerance)
 - Review statistical significance testing
 - Check food systems validation
